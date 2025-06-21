@@ -44,6 +44,7 @@ import JourneySection from "@/components/JourneySection.vue";
 import FAQSection from "@/components/FAQSection.vue";
 import CTASection from "@/components/CTASection.vue";
 import Footer from "@/components/Footer.vue";
+// @ts-ignore
 import DonateButton from "@/components/DonateButton.vue";
 
 interface NotificationComponent {

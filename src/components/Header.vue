@@ -5,11 +5,6 @@
       <div class="stars2"></div>
       <div class="stars3"></div>
     </div>
-    <img
-      class="logo animate-fade-in"
-      alt="Orangopus Logo"
-      src="https://c.animaapp.com/bX3QfjDJ/img/simplification.svg"
-    />
     <div class="header-content">
       <p class="header-subtitle animate-slide-up">
         A space for creators, developers, and dreamers to experiment, connect,
@@ -127,12 +122,6 @@ export default defineComponent({
   100% { transform: translateY(-100px); }
 }
 
-.logo {
-  height: 30px;
-  width: auto;
-  filter: drop-shadow(0 0 20px rgba(255, 85, 0, 0.3));
-}
-
 .header-content {
   display: flex;
   flex-direction: column;
@@ -198,16 +187,35 @@ export default defineComponent({
   letter-spacing: 0.5px;
   padding: 18px 32px;
   border-radius: 50px;
-  cursor: pointer;
   border: none;
-  overflow: hidden;
+  cursor: pointer;
   transition: all 0.3s ease;
+  overflow: hidden;
   text-transform: uppercase;
 }
 
-.btn span {
-  position: relative;
-  z-index: 2;
+.btn-primary {
+  background: linear-gradient(135deg, #ff5500 0%, #ff7a00 100%);
+  color: #ffffff;
+  box-shadow: 0 8px 32px rgba(255, 85, 0, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(255, 85, 0, 0.4);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
 }
 
 .btn-glow {
@@ -224,30 +232,6 @@ export default defineComponent({
   left: 100%;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #ff5500 0%, #ff7a00 100%);
-  color: #ffffff;
-  box-shadow: 0 8px 32px rgba(255, 85, 0, 0.3);
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(255, 85, 0, 0.4);
-}
-
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(20px);
-}
-
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-}
-
 .contributors-info {
   display: flex;
   align-items: center;
@@ -255,14 +239,8 @@ export default defineComponent({
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50px;
-  padding: 15px 25px;
-  backdrop-filter: blur(20px);
-  transition: all 0.3s ease;
-}
-
-.contributors-info:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
+  padding: 12px 24px;
+  backdrop-filter: blur(10px);
 }
 
 .contributors-avatars {
@@ -274,25 +252,28 @@ export default defineComponent({
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  margin-right: -8px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 85, 0, 0.3);
+  margin-left: -8px;
   transition: transform 0.3s ease;
+}
+
+.avatar:first-child {
+  margin-left: 0;
 }
 
 .avatar:hover {
   transform: scale(1.2);
-  z-index: 10;
+  z-index: 1;
 }
 
 .contributors-count {
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.8);
   font-family: "Manrope", Helvetica;
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.5px;
 }
 
-/* Animations */
+/* Animation classes */
 .animate-fade-in {
   animation: fadeIn 1s ease-out;
 }
@@ -345,12 +326,18 @@ export default defineComponent({
   
   .cta-buttons {
     flex-direction: column;
-    width: 100%;
-    max-width: 300px;
+    align-items: center;
   }
   
   .btn {
     width: 100%;
+    max-width: 300px;
+  }
+  
+  .contributors-info {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
   }
 }
 </style>

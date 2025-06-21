@@ -180,6 +180,7 @@ export default defineComponent({
       isGitHubConnected: false,
       userName: "",
       userAvatar: "",
+      userRepositories: [] as GitHubRepo[],
       newPost: {
         content: "",
         tags: [] as string[],
@@ -273,7 +274,7 @@ export default defineComponent({
         createdAt: new Date(),
         likes: 0,
         tags: this.extractTags(this.newPost.content),
-        githubRepo: this.newPost.githubRepo
+        githubRepo: this.newPost.githubRepo || undefined
       };
       
       this.posts.unshift(post);

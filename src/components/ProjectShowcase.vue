@@ -4,13 +4,13 @@
       <div class="showcase-particles"></div>
     </div>
     <div class="showcase-content">
-      <h2 class="section-title animate-on-scroll">Project Showcase</h2>
-      <p class="section-description animate-on-scroll">
+      <h2 class="section-title">Project Showcase</h2>
+      <p class="section-description">
         Discover amazing projects from our community and share your own creations.
       </p>
       
       <!-- Project Creation -->
-      <div class="project-creation animate-on-scroll">
+      <div class="project-creation">
         <div class="creation-header">
           <h3>Share Your Project</h3>
           <p>Showcase your work to the community</p>
@@ -51,15 +51,14 @@
           </div>
           <div class="form-actions">
             <button @click="createProject" class="create-btn" :disabled="!isFormValid">
-              <span>Share Project</span>
-              <div class="btn-glow"></div>
+              Share Project
             </button>
           </div>
         </div>
       </div>
       
       <!-- Project Filters -->
-      <div class="project-filters animate-on-scroll">
+      <div class="project-filters">
         <button 
           v-for="filter in filters" 
           :key="filter.id"
@@ -82,7 +81,7 @@
         <div 
           v-for="project in filteredProjects" 
           :key="project.id" 
-          class="project-card animate-on-scroll"
+          class="project-card"
         >
           <div class="project-image">
             <img :src="project.image" :alt="project.title" />
@@ -154,6 +153,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import { supabase } from "@/lib/supabase";
 
 interface Project {
   id: string;
@@ -216,27 +216,78 @@ export default defineComponent({
     }
   },
   mounted() {
-    this.observeElements();
     this.loadProjects();
   },
   methods: {
-    observeElements() {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('animate-in');
-          }
-        });
-      }, { threshold: 0.1 });
-
-      document.querySelectorAll('.animate-on-scroll').forEach(el => {
-        observer.observe(el);
-      });
-    },
-    
     async createProject() {
       if (!this.isFormValid) return;
       
+      this.loading = true;
+      
+      try {
+        const projectData = {
+          title: this.newProject.title,
+          description: this.newProject.description,
+          image_url: this.getRandomProjectImage(),
+          github_url: this.newProject.githubUrl || null,
+          live_url: this.newProject.liveUrl || null,
+          technologies: [this.newProject.category],
+          author_name: "Cheesecastv20053",
+          author_avatar: "https://c.animaapp.com/bX3QfjDJ/img/logo.svg"
+        };
+
+        const { data, error } = await supabase
+          .from('projects')
+          .insert([projectData])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating project:', error);
+          // Fallback to local storage
+          this.createLocalProject();
+        } else {
+          // Add the new project to the local state
+          const newProject: Project = {
+            id: data.id,
+            title: data.title,
+            description: data.description,
+            category: data.technologies[0] || 'other',
+            image: data.image_url,
+            githubUrl: data.github_url || undefined,
+            liveUrl: data.live_url || undefined,
+            likes: 0,
+            createdAt: new Date(data.created_at),
+            author: {
+              name: data.author_name,
+              avatar: data.author_avatar
+            }
+          };
+          
+          this.projects.unshift(newProject);
+        }
+      } catch (error) {
+        console.error('Error creating project:', error);
+        // Fallback to local storage
+        this.createLocalProject();
+      } finally {
+        this.loading = false;
+        
+        // Reset form
+        this.newProject = {
+          title: "",
+          description: "",
+          category: "",
+          githubUrl: "",
+          liveUrl: ""
+        };
+        
+        // Emit event to parent for social feed integration
+        this.$emit('project-created', this.projects[0]);
+      }
+    },
+
+    createLocalProject() {
       const project: Project = {
         id: Date.now().toString(),
         title: this.newProject.title,
@@ -254,20 +305,7 @@ export default defineComponent({
       };
       
       this.projects.unshift(project);
-      
-      // Reset form
-      this.newProject = {
-        title: "",
-        description: "",
-        category: "",
-        githubUrl: "",
-        liveUrl: ""
-      };
-      
-      // Emit event to parent for social feed integration
-      this.$emit('project-created', project);
-      
-      console.log('Project created:', project);
+      console.log('Project created locally:', project);
     },
     
     getRandomProjectImage(): string {
@@ -284,10 +322,45 @@ export default defineComponent({
     async loadProjects() {
       this.loading = true;
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock data
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (error) {
+          console.error('Error loading projects:', error);
+          // Fallback to mock data
+          this.loadMockProjects();
+        } else {
+          this.projects = data.map((project: any) => ({
+            id: project.id,
+            title: project.title,
+            description: project.description,
+            category: project.technologies[0] || 'other',
+            image: project.image_url,
+            githubUrl: project.github_url || undefined,
+            liveUrl: project.live_url || undefined,
+            likes: 0,
+            createdAt: new Date(project.created_at),
+            author: {
+              name: project.author_name || "Anonymous",
+              avatar: project.author_avatar || "https://c.animaapp.com/bX3QfjDJ/img/logo.svg"
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading projects:', error);
+        // Fallback to mock data
+        this.loadMockProjects();
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    loadMockProjects() {
+      // Mock data as fallback
       this.projects = [
         {
           id: "1",
@@ -364,8 +437,6 @@ export default defineComponent({
           }
         }
       ];
-      
-      this.loading = false;
     },
     
     async loadMoreProjects() {
@@ -384,10 +455,20 @@ export default defineComponent({
       console.log('Viewing project:', project);
     },
     
-    likeProject(projectId: string) {
+    async likeProject(projectId: string) {
       const project = this.projects.find(p => p.id === projectId);
       if (project) {
         project.likes++;
+        
+        // Update in Supabase
+        try {
+          await supabase
+            .from('projects')
+            .update({ likes: project.likes })
+            .eq('id', projectId);
+        } catch (error) {
+          console.error('Error updating project likes:', error);
+        }
       }
     },
     
@@ -407,11 +488,15 @@ export default defineComponent({
       const diff = now.getTime() - date.getTime();
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       
-      if (days === 0) return 'Today';
-      if (days === 1) return 'Yesterday';
-      if (days < 7) return `${days} days ago`;
-      if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
-      return `${Math.floor(days / 30)} months ago`;
+      if (days === 0) {
+        return "Today";
+      } else if (days === 1) {
+        return "Yesterday";
+      } else if (days < 7) {
+        return `${days} days ago`;
+      } else {
+        return date.toLocaleDateString();
+      }
     }
   }
 });
@@ -467,7 +552,7 @@ export default defineComponent({
   font-size: clamp(48px, 6vw, 72px);
   font-weight: 700;
   letter-spacing: -2px;
-  line-height: 1.1;
+  line-height: 1.3;
   text-align: center;
   margin: 0 0 20px 0;
   background: linear-gradient(135deg, #ffffff 0%, #ff5500 100%);

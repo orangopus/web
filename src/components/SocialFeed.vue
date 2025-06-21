@@ -146,6 +146,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import { supabase } from "@/lib/supabase";
 
 interface GitHubRepo {
   name: string;
@@ -209,25 +210,10 @@ export default defineComponent({
     }
   },
   mounted() {
-    this.observeElements();
     this.loadPosts();
     this.checkGitHubConnection();
   },
   methods: {
-    observeElements() {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('animate-in');
-          }
-        });
-      }, { threshold: 0.1 });
-
-      document.querySelectorAll('.animate-on-scroll').forEach(el => {
-        observer.observe(el);
-      });
-    },
-    
     async connectGitHub() {
       if (this.isGitHubConnected) return;
       
@@ -266,6 +252,55 @@ export default defineComponent({
     async createPost() {
       if (!this.newPost.content.trim()) return;
       
+      this.loading = true;
+      
+      try {
+        const postData = {
+          user_name: this.userName,
+          user_avatar: this.userAvatar,
+          content: this.newPost.content,
+          likes: 0,
+          tags: this.extractTags(this.newPost.content),
+          github_repo: this.newPost.githubRepo
+        };
+
+        const { data, error } = await supabase
+          .from('posts')
+          .insert([postData])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating post:', error);
+          // Fallback to local storage if Supabase fails
+          this.createLocalPost();
+        } else {
+          // Add the new post to the local state
+          const newPost: Post = {
+            id: data.id,
+            userName: data.user_name,
+            userAvatar: data.user_avatar,
+            content: data.content,
+            createdAt: new Date(data.created_at),
+            likes: data.likes,
+            tags: data.tags,
+            githubRepo: data.github_repo || undefined
+          };
+          
+          this.posts.unshift(newPost);
+        }
+      } catch (error) {
+        console.error('Error creating post:', error);
+        // Fallback to local storage
+        this.createLocalPost();
+      } finally {
+        this.loading = false;
+        this.newPost.content = "";
+        this.newPost.githubRepo = null;
+      }
+    },
+
+    createLocalPost() {
       const post: Post = {
         id: Date.now().toString(),
         userName: this.userName,
@@ -278,11 +313,7 @@ export default defineComponent({
       };
       
       this.posts.unshift(post);
-      this.newPost.content = "";
-      this.newPost.githubRepo = null;
-      
-      // Simulate API call
-      console.log('Post created:', post);
+      console.log('Post created locally:', post);
     },
     
     extractTags(content: string): string[] {
@@ -293,10 +324,40 @@ export default defineComponent({
     async loadPosts() {
       this.loading = true;
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock data
+      try {
+        const { data, error } = await supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (error) {
+          console.error('Error loading posts:', error);
+          // Fallback to mock data
+          this.loadMockPosts();
+        } else {
+          this.posts = data.map((post: any) => ({
+            id: post.id,
+            userName: post.user_name,
+            userAvatar: post.user_avatar,
+            content: post.content,
+            createdAt: new Date(post.created_at),
+            likes: post.likes,
+            tags: post.tags,
+            githubRepo: post.github_repo || undefined
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading posts:', error);
+        // Fallback to mock data
+        this.loadMockPosts();
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    loadMockPosts() {
+      // Mock data as fallback
       this.posts = [
         {
           id: "1",
@@ -342,8 +403,6 @@ export default defineComponent({
           }
         }
       ];
-      
-      this.loading = false;
     },
     
     async loadMorePosts() {
@@ -357,10 +416,20 @@ export default defineComponent({
       this.activeFilter = filterId;
     },
     
-    likePost(postId: string) {
+    async likePost(postId: string) {
       const post = this.posts.find(p => p.id === postId);
       if (post) {
         post.likes++;
+        
+        // Update in Supabase
+        try {
+          await supabase
+            .from('posts')
+            .update({ likes: post.likes })
+            .eq('id', postId);
+        } catch (error) {
+          console.error('Error updating likes:', error);
+        }
       }
     },
     
@@ -443,7 +512,7 @@ export default defineComponent({
   font-size: clamp(48px, 6vw, 72px);
   font-weight: 700;
   letter-spacing: -2px;
-  line-height: 1.1;
+  line-height: 1.3;
   text-align: center;
   margin: 0 0 20px 0;
   background: linear-gradient(135deg, #ffffff 0%, #ff5500 100%);

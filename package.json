@@ -9,6 +9,7 @@
     "build": "NODE_OPTIONS=--openssl-legacy-provider vue-cli-service build"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.50.0",
     "tslib": "2.6.2",
     "vue-router": "4.2.5"
   },

@@ -24,6 +24,7 @@
     </div>
     <CTASection />
     <Footer />
+    <DonateButton />
   </div>
 </template>
 
@@ -43,6 +44,7 @@ import JourneySection from "@/components/JourneySection.vue";
 import FAQSection from "@/components/FAQSection.vue";
 import CTASection from "@/components/CTASection.vue";
 import Footer from "@/components/Footer.vue";
+import DonateButton from "@/components/DonateButton.vue";
 
 interface NotificationComponent {
   success: (title: string, message: string, duration?: number) => void;
@@ -65,7 +67,8 @@ export default defineComponent({
     JourneySection,
     FAQSection,
     CTASection,
-    Footer
+    Footer,
+    DonateButton
   },
   data() {
     return {

@@ -67,12 +67,53 @@ A modern, beautiful Vue.js website showcasing the Orangopus community with GitHu
    npm install
    ```
 
-3. **Start development server**
+3. **Set up Supabase**
+   - Create a new project at [supabase.com](https://supabase.com)
+   - Create the following tables in your Supabase database:
+
+   **Posts Table:**
+   ```sql
+   CREATE TABLE posts (
+     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+     user_name TEXT NOT NULL,
+     user_avatar TEXT NOT NULL,
+     content TEXT NOT NULL,
+     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+     likes INTEGER DEFAULT 0,
+     tags TEXT[] DEFAULT '{}',
+     github_repo JSONB
+   );
+   ```
+
+   **Projects Table:**
+   ```sql
+   CREATE TABLE projects (
+     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+     title TEXT NOT NULL,
+     description TEXT NOT NULL,
+     image_url TEXT NOT NULL,
+     github_url TEXT,
+     live_url TEXT,
+     technologies TEXT[] DEFAULT '{}',
+     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+     author_name TEXT NOT NULL,
+     author_avatar TEXT NOT NULL
+   );
+   ```
+
+4. **Configure environment variables**
+   Create a `.env` file in the root directory:
+   ```env
+   VUE_APP_SUPABASE_URL=https://your-project.supabase.co
+   VUE_APP_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+5. **Start development server**
    ```bash
    npm run dev
    ```
 
-4. **Open your browser**
+6. **Open your browser**
    Navigate to `http://localhost:8080`
 
 ### Building for Production

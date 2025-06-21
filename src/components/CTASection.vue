@@ -76,7 +76,6 @@ export default defineComponent({
   right: 0;
   bottom: 0;
   background: linear-gradient(135deg, rgba(255, 85, 0, 0.1) 0%, rgba(0, 0, 0, 0.8) 50%, rgba(255, 85, 0, 0.1) 100%);
-  border-radius: 30px;
   overflow: hidden;
 }
 

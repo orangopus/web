@@ -130,14 +130,14 @@ export default defineComponent({
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.78);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
 }
 
 .navigation.scrolled {
-  background: rgba(0, 0, 0, 0.95);
+  background: rgba(0, 0, 0, 0.93);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -276,12 +276,12 @@ export default defineComponent({
 
 /* Light theme styles */
 .light-theme .navigation {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.88);
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .light-theme .navigation.scrolled {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.93);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 

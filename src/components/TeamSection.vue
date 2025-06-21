@@ -122,7 +122,7 @@ export default defineComponent({
   font-size: clamp(48px, 6vw, 80px);
   font-weight: 700;
   letter-spacing: -2px;
-  line-height: 1.1;
+  line-height: 1.3;
   text-align: center;
   margin: 0;
   background: linear-gradient(135deg, #ffffff 0%, #ff5500 100%);

@@ -206,9 +206,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-- **Website**: [orangopus.com](https://orangopus.com)
+- **Website**: [orangopus.com](https://orangopus.org)
 - **GitHub**: [@orangopus](https://github.com/orangopus)
-- **Email**: hello@orangopus.com
+- **Email**: jordan@orangopus.org
 
 ---
 

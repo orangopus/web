@@ -121,7 +121,7 @@
             </div>
             
             <!-- Project Tags -->
-            <div v-if="post.tags.length" class="post-tags">
+            <div v-if="post.tags && post.tags.length" class="post-tags">
               <span 
                 v-for="tag in post.tags" 
                 :key="tag" 
@@ -205,7 +205,7 @@ export default defineComponent({
         return this.posts;
       }
       return this.posts.filter(post => 
-        post.tags.includes(this.activeFilter)
+        post.tags && post.tags.includes(this.activeFilter)
       );
     }
   },
@@ -283,7 +283,7 @@ export default defineComponent({
             content: data.content,
             createdAt: new Date(data.created_at),
             likes: data.likes,
-            tags: data.tags,
+            tags: data.tags || [],
             githubRepo: data.github_repo || undefined
           };
           
@@ -343,7 +343,7 @@ export default defineComponent({
             content: post.content,
             createdAt: new Date(post.created_at),
             likes: post.likes,
-            tags: post.tags,
+            tags: post.tags || [],
             githubRepo: post.github_repo || undefined
           }));
         }

@@ -95,6 +95,7 @@ import DonateButton from "@/components/DonateButton.vue";
 import Dashboard from "@/components/Dashboard.vue";
 import UserProfile from "@/components/UserProfile.vue";
 import AuthPage from "@/components/AuthPage.vue";
+import PressKitSection from "@/components/PressKitSection.vue";
 
 interface NotificationComponent {
   success: (title: string, message: string, duration?: number) => void;
@@ -121,7 +122,8 @@ export default defineComponent({
     DonateButton,
     Dashboard,
     UserProfile,
-    AuthPage
+    AuthPage,
+    PressKitSection
   },
   data() {
     return {

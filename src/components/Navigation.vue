@@ -23,6 +23,82 @@
           <span v-if="isDarkTheme">🌙</span>
           <span v-else>☀️</span>
         </button>
+        
+        <!-- Authentication Section -->
+        <div v-if="!authState.user" class="auth-buttons">
+          <button @click="$emit('show-auth', 'login')" class="auth-button login">
+            Sign In
+          </button>
+          <button @click="$emit('show-auth', 'signup')" class="auth-button signup">
+            Sign Up
+          </button>
+        </div>
+        
+        <!-- User Profile Section -->
+        <div v-else class="user-profile">
+          <div class="user-avatar" @click="toggleUserMenu">
+            <img 
+              :src="authState.user.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'" 
+              :alt="authState.user.name"
+            />
+            <div class="avatar-indicator"></div>
+          </div>
+          
+          <div v-if="showUserMenu" class="user-menu">
+            <div class="user-info">
+              <img 
+                :src="authState.user.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'" 
+                :alt="authState.user.name"
+                class="menu-avatar"
+              />
+              <div class="user-details">
+                <h4>{{ authState.user.name }}</h4>
+                <p>{{ authState.user.email }}</p>
+              </div>
+            </div>
+            
+            <div class="menu-actions">
+              <button @click="navigateToDashboard" class="menu-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
+                  <path d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"/>
+                </svg>
+                Dashboard
+              </button>
+              
+              <button @click="navigateToProfile" class="menu-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                Profile
+              </button>
+              
+              <button @click="navigateToProjects" class="menu-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                  <polyline points="14,2 14,8 20,8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10,9 9,9 8,9"/>
+                </svg>
+                My Projects
+              </button>
+              
+              <div class="menu-divider"></div>
+              
+              <button @click="handleSignOut" class="menu-item signout">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                  <polyline points="16,17 21,12 16,7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+        
         <button @click="scrollToTop" class="scroll-top" :class="{ 'visible': showScrollTop }">
           <svg viewBox="0 0 24 24" fill="currentColor" class="scroll-icon">
             <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
@@ -35,6 +111,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import { authService, AuthState } from "@/services/authService";
 
 interface NavLink {
   id: string;
@@ -50,6 +127,12 @@ export default defineComponent({
       activeSection: "home",
       showScrollTop: false,
       isDarkTheme: true,
+      showUserMenu: false,
+      authState: {
+        user: null,
+        loading: false,
+        error: null
+      } as AuthState,
       navLinks: [
         { id: "home", name: "Home", href: "#home" },
         { id: "github", name: "GitHub", href: "#github" },
@@ -57,16 +140,27 @@ export default defineComponent({
         { id: "projects", name: "Projects", href: "#projects" },
         { id: "team", name: "Team", href: "#team" },
         { id: "faq", name: "FAQ", href: "#faq" }
-      ] as NavLink[]
+      ] as NavLink[],
+      unsubscribe: () => {}
     };
   },
   mounted() {
     this.handleScroll();
     window.addEventListener('scroll', this.handleScroll);
     this.observeSections();
+    
+    // Subscribe to auth state changes
+    this.unsubscribe = authService.subscribe((state) => {
+      this.authState = state;
+    });
+    
+    // Close user menu when clicking outside
+    document.addEventListener('click', this.handleClickOutside);
   },
   beforeUnmount() {
     window.removeEventListener('scroll', this.handleScroll);
+    document.removeEventListener('click', this.handleClickOutside);
+    this.unsubscribe();
   },
   methods: {
     handleScroll() {
@@ -94,6 +188,38 @@ export default defineComponent({
     toggleTheme() {
       this.isDarkTheme = !this.isDarkTheme;
       document.body.classList.toggle('light-theme', !this.isDarkTheme);
+    },
+    
+    toggleUserMenu() {
+      this.showUserMenu = !this.showUserMenu;
+    },
+    
+    handleClickOutside(event: Event) {
+      const target = event.target as Element;
+      if (!target.closest('.user-profile')) {
+        this.showUserMenu = false;
+      }
+    },
+    
+    async handleSignOut() {
+      await authService.signOut();
+      this.showUserMenu = false;
+    },
+    
+    navigateToDashboard() {
+      this.showUserMenu = false;
+      this.$emit('navigate-to-dashboard');
+    },
+    
+    navigateToProfile() {
+      this.showUserMenu = false;
+      this.$emit('navigate-to-profile');
+    },
+    
+    navigateToProjects() {
+      this.showUserMenu = false;
+      // Navigate to projects - you can implement routing here
+      console.log('Navigate to projects');
     },
     
     observeSections() {
@@ -248,14 +374,202 @@ export default defineComponent({
 
 .scroll-top:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(255, 85, 0, 0.3);
+  box-shadow: 0 4px 15px rgba(255, 85, 0, 0.3);
 }
 
 .scroll-icon {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 
+/* Authentication Buttons */
+.auth-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.auth-button {
+  font-family: "Manrope", Helvetica;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.auth-button.login {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.auth-button.login:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.auth-button.signup {
+  background: linear-gradient(135deg, #ff5500 0%, #ff7a00 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(255, 85, 0, 0.3);
+}
+
+.auth-button.signup:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 85, 0, 0.4);
+}
+
+/* User Profile */
+.user-profile {
+  position: relative;
+}
+
+.user-avatar {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.user-avatar img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 85, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.user-avatar:hover img {
+  border-color: rgba(255, 85, 0, 0.6);
+  transform: scale(1.05);
+}
+
+.avatar-indicator {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  background: #22c55e;
+  border: 2px solid #000000;
+  border-radius: 50%;
+}
+
+/* User Menu */
+.user-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  min-width: 240px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  z-index: 1001;
+  animation: menuSlideIn 0.3s ease;
+}
+
+@keyframes menuSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 16px;
+}
+
+.menu-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 85, 0, 0.3);
+}
+
+.user-details h4 {
+  font-family: "Manrope", Helvetica;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+}
+
+.user-details p {
+  font-family: "Manrope", Helvetica;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: "Manrope", Helvetica;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  transform: translateX(4px);
+}
+
+.menu-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.menu-item.signout {
+  color: #ef4444;
+}
+
+.menu-item.signout:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+}
+
+.menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 8px 0;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .nav-content {
     padding: 0 20px;
@@ -265,12 +579,31 @@ export default defineComponent({
     display: none;
   }
   
-  .nav-actions {
-    gap: 10px;
+  .auth-buttons {
+    gap: 8px;
   }
   
-  .theme-toggle, .scroll-top {
-    padding: 6px 10px;
+  .auth-button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .user-menu {
+    right: -20px;
+    min-width: 200px;
+  }
+  
+  .user-details h4 {
+    font-size: 14px;
+  }
+  
+  .user-details p {
+    font-size: 12px;
+  }
+  
+  .menu-item {
+    padding: 10px 12px;
+    font-size: 13px;
   }
 }
 

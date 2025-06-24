@@ -1,7 +1,8 @@
 import { createApp } from "vue";
-import OrangopusWebapp from "./screens/OrangopusWebapp.vue";
+import router from "./router";
+import App from "./App.vue";
 
-const app = createApp(OrangopusWebapp);
+const app = createApp(App);
 
 // Add error handling for production
 if (process.env.NODE_ENV === 'production') {
@@ -12,4 +13,5 @@ if (process.env.NODE_ENV === 'production') {
   };
 }
 
+app.use(router);
 app.mount("#app");

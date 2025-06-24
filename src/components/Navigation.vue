@@ -53,7 +53,7 @@
               />
               <div class="user-details">
                 <h4>{{ authState.user.name }}</h4>
-                <p>{{ authState.user.email }}</p>
+                <p>{{ authState.user.github_username || 'No GitHub username' }}</p>
               </div>
             </div>
             
@@ -208,18 +208,17 @@ export default defineComponent({
     
     navigateToDashboard() {
       this.showUserMenu = false;
-      this.$emit('navigate-to-dashboard');
+      this.$router.push('/dashboard');
     },
     
     navigateToProfile() {
       this.showUserMenu = false;
-      this.$emit('navigate-to-profile');
+      this.$router.push('/profile');
     },
     
     navigateToProjects() {
       this.showUserMenu = false;
-      // Navigate to projects - you can implement routing here
-      console.log('Navigate to projects');
+      this.$router.push('/#projects');
     },
     
     observeSections() {

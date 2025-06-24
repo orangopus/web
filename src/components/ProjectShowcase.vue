@@ -15,45 +15,11 @@
           <h3>Share Your Project</h3>
           <p>Showcase your work to the community</p>
         </div>
-        <div class="creation-form">
-          <div class="form-row">
-            <input 
-              v-model="newProject.title" 
-              placeholder="Project Title"
-              class="form-input"
-            />
-            <select v-model="newProject.category" class="form-select">
-              <option value="">Select Category</option>
-              <option value="web">Web Development</option>
-              <option value="mobile">Mobile App</option>
-              <option value="ai">AI/ML</option>
-              <option value="game">Game Development</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <textarea 
-            v-model="newProject.description" 
-            placeholder="Describe your project..."
-            class="form-textarea"
-            rows="4"
-          ></textarea>
-          <div class="form-row">
-            <input 
-              v-model="newProject.githubUrl" 
-              placeholder="GitHub Repository URL (optional)"
-              class="form-input"
-            />
-            <input 
-              v-model="newProject.liveUrl" 
-              placeholder="Live Demo URL (optional)"
-              class="form-input"
-            />
-          </div>
-          <div class="form-actions">
-            <button @click="createProject" class="create-btn" :disabled="!isFormValid">
-              Share Project
-            </button>
-          </div>
+        <div class="creation-actions">
+          <button @click="showCreateProject = true" class="create-project-btn">
+            <span>➕</span>
+            Create New Project
+          </button>
         </div>
       </div>
       
@@ -84,7 +50,7 @@
           class="project-card"
         >
           <div class="project-image">
-            <img :src="project.image" :alt="project.title" />
+            <img :src="project.image_url || '/default-project.jpg'" :alt="project.title" />
             <div class="project-overlay">
               <div class="overlay-actions">
                 <button @click="viewProject(project)" class="overlay-btn">
@@ -93,7 +59,7 @@
                 </button>
                 <button @click="likeProject(project.id)" class="overlay-btn">
                   <span>❤️</span>
-                  {{ project.likes }}
+                  {{ project.likes_count || 0 }}
                 </button>
               </div>
             </div>
@@ -109,16 +75,29 @@
             
             <div class="project-meta">
               <div class="project-author">
-                <img :src="project.author.avatar" :alt="project.author.name" />
-                <span>{{ project.author.name }}</span>
+                <img :src="project.user_avatar || '/default-avatar.jpg'" :alt="project.user_name" />
+                <span>{{ project.user_name || 'Anonymous' }}</span>
               </div>
-              <span class="project-date">{{ formatDate(project.createdAt) }}</span>
+              <span class="project-date">{{ formatDate(project.created_at || '') }}</span>
+            </div>
+            
+            <div class="project-technologies">
+              <span 
+                v-for="tech in (project.technologies || []).slice(0, 3)" 
+                :key="tech" 
+                class="tech-tag"
+              >
+                {{ tech }}
+              </span>
+              <span v-if="(project.technologies || []).length > 3" class="tech-tag more">
+                +{{ (project.technologies || []).length - 3 }}
+              </span>
             </div>
             
             <div class="project-links">
               <a 
-                v-if="project.githubUrl" 
-                :href="project.githubUrl" 
+                v-if="project.github_url" 
+                :href="project.github_url" 
                 target="_blank" 
                 class="project-link github-link"
               >
@@ -128,8 +107,8 @@
                 GitHub
               </a>
               <a 
-                v-if="project.liveUrl" 
-                :href="project.liveUrl" 
+                v-if="project.live_url" 
+                :href="project.live_url" 
                 target="_blank" 
                 class="project-link live-link"
               >
@@ -148,28 +127,23 @@
         </button>
       </div>
     </div>
+
+    <!-- Create Project Modal -->
+    <div v-if="showCreateProject" class="modal-overlay" @click="showCreateProject = false">
+      <div class="modal" @click.stop>
+        <ProjectForm 
+          @close="showCreateProject = false"
+          @success="handleProjectCreated"
+        />
+      </div>
+    </div>
   </section>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { supabase } from "@/lib/supabase";
-
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  image: string;
-  githubUrl?: string;
-  liveUrl?: string;
-  likes: number;
-  createdAt: Date;
-  author: {
-    name: string;
-    avatar: string;
-  };
-}
+import { projectService, type Project } from "@/services/projectService";
+import ProjectForm from "@/components/ProjectForm.vue";
 
 interface Filter {
   id: string;
@@ -178,25 +152,22 @@ interface Filter {
 
 export default defineComponent({
   name: "ProjectShowcase",
+  components: {
+    ProjectForm
+  },
   data() {
     return {
       loading: false,
-      newProject: {
-        title: "",
-        description: "",
-        category: "",
-        githubUrl: "",
-        liveUrl: ""
-      },
       projects: [] as Project[],
       activeFilter: "all",
       page: 1,
       hasMoreProjects: true,
+      showCreateProject: false,
       filters: [
         { id: "all", name: "All Projects" },
-        { id: "web", name: "Web Development" },
-        { id: "mobile", name: "Mobile Apps" },
-        { id: "ai", name: "AI/ML" },
+        { id: "web-development", name: "Web Development" },
+        { id: "mobile-app", name: "Mobile Apps" },
+        { id: "ai-ml", name: "AI/ML" },
         { id: "game", name: "Games" },
         { id: "other", name: "Other" }
       ] as Filter[]
@@ -208,295 +179,91 @@ export default defineComponent({
         return this.projects;
       }
       return this.projects.filter(project => project.category === this.activeFilter);
-    },
-    isFormValid(): boolean {
-      return this.newProject.title.trim() !== "" && 
-             this.newProject.description.trim() !== "" && 
-             this.newProject.category !== "";
     }
   },
   mounted() {
     this.loadProjects();
   },
   methods: {
-    async createProject() {
-      if (!this.isFormValid) return;
-      
-      this.loading = true;
-      
-      try {
-        const projectData = {
-          title: this.newProject.title,
-          description: this.newProject.description,
-          image_url: this.getRandomProjectImage(),
-          github_url: this.newProject.githubUrl || null,
-          live_url: this.newProject.liveUrl || null,
-          technologies: [this.newProject.category],
-          author_name: "Cheesecastv20053",
-          author_avatar: "https://c.animaapp.com/bX3QfjDJ/img/logo.svg"
-        };
-
-        const { data, error } = await supabase
-          .from('projects')
-          .insert([projectData])
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error creating project:', error);
-          // Fallback to local storage
-          this.createLocalProject();
-        } else {
-          // Add the new project to the local state
-          const newProject: Project = {
-            id: data.id,
-            title: data.title,
-            description: data.description,
-            category: (data.technologies && data.technologies[0]) || 'other',
-            image: data.image_url,
-            githubUrl: data.github_url || undefined,
-            liveUrl: data.live_url || undefined,
-            likes: 0,
-            createdAt: new Date(data.created_at),
-            author: {
-              name: data.author_name,
-              avatar: data.author_avatar
-            }
-          };
-          
-          this.projects.unshift(newProject);
-        }
-      } catch (error) {
-        console.error('Error creating project:', error);
-        // Fallback to local storage
-        this.createLocalProject();
-      } finally {
-        this.loading = false;
-        
-        // Reset form
-        this.newProject = {
-          title: "",
-          description: "",
-          category: "",
-          githubUrl: "",
-          liveUrl: ""
-        };
-        
-        // Emit event to parent for social feed integration
-        this.$emit('project-created', this.projects[0]);
-      }
-    },
-
-    createLocalProject() {
-      const project: Project = {
-        id: Date.now().toString(),
-        title: this.newProject.title,
-        description: this.newProject.description,
-        category: this.newProject.category,
-        image: this.getRandomProjectImage(),
-        githubUrl: this.newProject.githubUrl || undefined,
-        liveUrl: this.newProject.liveUrl || undefined,
-        likes: 0,
-        createdAt: new Date(),
-        author: {
-          name: "Cheesecastv20053",
-          avatar: "https://c.animaapp.com/bX3QfjDJ/img/logo.svg"
-        }
-      };
-      
-      this.projects.unshift(project);
-      console.log('Project created locally:', project);
-    },
-    
-    getRandomProjectImage(): string {
-      const images = [
-        "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop",
-        "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=300&fit=crop",
-        "https://images.unsplash.com/photo-1551650975-87deedd944c3?w=400&h=300&fit=crop",
-        "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=300&fit=crop",
-        "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=400&h=300&fit=crop"
-      ];
-      return images[Math.floor(Math.random() * images.length)];
-    },
-    
     async loadProjects() {
       this.loading = true;
       
       try {
-        const { data, error } = await supabase
-          .from('projects')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (error) {
-          console.error('Error loading projects:', error);
-          // Fallback to mock data
-          this.loadMockProjects();
+        const result = await projectService.getProjects({ 
+          status: 'published',
+          limit: 10 
+        });
+        
+        if (result.success && result.projects) {
+          this.projects = result.projects;
         } else {
-          this.projects = data.map((project: any) => ({
-            id: project.id,
-            title: project.title,
-            description: project.description,
-            category: (project.technologies && project.technologies[0]) || 'other',
-            image: project.image_url,
-            githubUrl: project.github_url || undefined,
-            liveUrl: project.live_url || undefined,
-            likes: 0,
-            createdAt: new Date(project.created_at),
-            author: {
-              name: project.author_name || "Anonymous",
-              avatar: project.author_avatar || "https://c.animaapp.com/bX3QfjDJ/img/logo.svg"
-            }
-          }));
+          console.error('Error loading projects:', result.error);
         }
       } catch (error) {
         console.error('Error loading projects:', error);
-        // Fallback to mock data
-        this.loadMockProjects();
       } finally {
         this.loading = false;
       }
     },
 
-    loadMockProjects() {
-      // Mock data as fallback
-      this.projects = [
-        {
-          id: "1",
-          title: "Vue Component Library",
-          description: "A beautiful and modern Vue.js component library with 50+ components, built with TypeScript and featuring dark mode support.",
-          category: "web",
-          image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop",
-          githubUrl: "https://github.com/orangopus/vue-component-library",
-          liveUrl: "https://vue-components-demo.vercel.app",
-          likes: 23,
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-          author: {
-            name: "Ellie@orangopus",
-            avatar: "https://c.animaapp.com/bX3QfjDJ/img/logo-1.svg"
-          }
-        },
-        {
-          id: "2",
-          title: "Real-time Chat App",
-          description: "A real-time chat application built with WebSockets, featuring user authentication, file sharing, and message encryption.",
-          category: "web",
-          image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=300&fit=crop",
-          githubUrl: "https://github.com/orangopus/chat-app",
-          liveUrl: "https://chat-app-demo.vercel.app",
-          likes: 45,
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-          author: {
-            name: "Jordan@orangopus",
-            avatar: "https://c.animaapp.com/bX3QfjDJ/img/logo-2.svg"
-          }
-        },
-        {
-          id: "3",
-          title: "AI Image Generator",
-          description: "An AI-powered image generation tool using stable diffusion, with custom model training and style transfer capabilities.",
-          category: "ai",
-          image: "https://images.unsplash.com/photo-1551650975-87deedd944c3?w=400&h=300&fit=crop",
-          githubUrl: "https://github.com/orangopus/ai-image-gen",
-          likes: 67,
-          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-          author: {
-            name: "Rim@orangopus",
-            avatar: "https://c.animaapp.com/bX3QfjDJ/img/logo.svg"
-          }
-        },
-        {
-          id: "4",
-          title: "Mobile Task Manager",
-          description: "A cross-platform mobile app for task management with offline support, push notifications, and team collaboration features.",
-          category: "mobile",
-          image: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=300&fit=crop",
-          githubUrl: "https://github.com/orangopus/task-manager",
-          liveUrl: "https://task-manager-app.vercel.app",
-          likes: 34,
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-          author: {
-            name: "Alex@orangopus",
-            avatar: "https://c.animaapp.com/bX3QfjDJ/img/logo-1.svg"
-          }
-        },
-        {
-          id: "5",
-          title: "Space Shooter Game",
-          description: "A retro-style space shooter game built with HTML5 Canvas and JavaScript, featuring particle effects and progressive difficulty.",
-          category: "game",
-          image: "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=400&h=300&fit=crop",
-          githubUrl: "https://github.com/orangopus/space-shooter",
-          liveUrl: "https://space-shooter-game.vercel.app",
-          likes: 28,
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-          author: {
-            name: "Sam@orangopus",
-            avatar: "https://c.animaapp.com/bX3QfjDJ/img/logo-2.svg"
-          }
+    async likeProject(projectId: string) {
+      try {
+        const result = await projectService.likeProject(projectId);
+        if (result.success) {
+          // Refresh the project data
+          await this.loadProjects();
         }
-      ];
+      } catch (error) {
+        console.error('Error liking project:', error);
+      }
     },
-    
-    async loadMoreProjects() {
-      this.page++;
-      // Simulate loading more projects
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      this.hasMoreProjects = false;
+
+    viewProject(project: Project) {
+      // Navigate to project detail page using slug or ID as fallback
+      if (project.slug) {
+        this.$router.push(`/project/${project.slug as string}`);
+      } else {
+        // Fallback to using project ID if slug doesn't exist
+        this.$router.push(`/project/${project.id}`);
+      }
     },
-    
+
     setActiveFilter(filterId: string) {
       this.activeFilter = filterId;
     },
-    
-    viewProject(project: Project) {
-      // Implement project view functionality
-      console.log('Viewing project:', project);
+
+    loadMoreProjects() {
+      // Implement pagination
+      console.log('Load more projects');
     },
-    
-    async likeProject(projectId: string) {
-      const project = this.projects.find(p => p.id === projectId);
-      if (project) {
-        project.likes++;
-        
-        // Update in Supabase
-        try {
-          await supabase
-            .from('projects')
-            .update({ likes: project.likes })
-            .eq('id', projectId);
-        } catch (error) {
-          console.error('Error updating project likes:', error);
-        }
-      }
-    },
-    
-    getCategoryName(category: string): string {
+
+    getCategoryName(category?: string): string {
+      if (!category) return 'Uncategorized';
       const categoryMap: { [key: string]: string } = {
-        web: "Web Development",
-        mobile: "Mobile App",
-        ai: "AI/ML",
-        game: "Game Development",
-        other: "Other"
+        'web-development': 'Web Development',
+        'mobile-app': 'Mobile App',
+        'ai-ml': 'AI/ML',
+        'game': 'Game',
+        'other': 'Other'
       };
       return categoryMap[category] || category;
     },
-    
-    formatDate(date: Date): string {
-      const now = new Date();
-      const diff = now.getTime() - date.getTime();
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      
-      if (days === 0) {
-        return "Today";
-      } else if (days === 1) {
-        return "Yesterday";
-      } else if (days < 7) {
-        return `${days} days ago`;
-      } else {
+
+    formatDate(dateString: any): string {
+      if (!dateString) return 'Unknown date';
+      try {
+        const date = new Date(dateString);
         return date.toLocaleDateString();
+      } catch (error) {
+        return 'Invalid date';
       }
+    },
+
+    handleProjectCreated(project: Project) {
+      // Handle project creation success
+      this.showCreateProject = false;
+      this.loadProjects();
+      this.$emit('project-created', project);
     }
   }
 });
@@ -622,50 +389,12 @@ export default defineComponent({
   margin: 0;
 }
 
-.creation-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.form-input, .form-select, .form-textarea {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  padding: 15px 20px;
-  color: #ffffff;
-  font-family: "Manrope", Helvetica;
-  font-size: 16px;
-  transition: all 0.3s ease;
-}
-
-.form-input:focus, .form-select:focus, .form-textarea:focus {
-  outline: none;
-  border-color: rgba(255, 85, 0, 0.5);
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.form-input::placeholder, .form-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.form-select option {
-  background: #1a1a1a;
-  color: #ffffff;
-}
-
-.form-actions {
+.creation-actions {
   display: flex;
   justify-content: center;
 }
 
-.create-btn {
+.create-project-btn {
   position: relative;
   background: linear-gradient(135deg, #ff5500 0%, #ff7a00 100%);
   border: none;
@@ -680,12 +409,7 @@ export default defineComponent({
   overflow: hidden;
 }
 
-.create-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.create-btn:not(:disabled):hover {
+.create-project-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(255, 85, 0, 0.3);
 }
@@ -700,7 +424,7 @@ export default defineComponent({
   transition: left 0.5s ease;
 }
 
-.create-btn:hover .btn-glow {
+.create-project-btn:hover .btn-glow {
   left: 100%;
 }
 
@@ -929,6 +653,29 @@ export default defineComponent({
 .project-date {
   color: rgba(255, 255, 255, 0.5);
   font-size: 12px;
+}
+
+.project-technologies {
+  margin-bottom: 20px;
+}
+
+.tech-tag {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+.tech-tag.more {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .project-links {

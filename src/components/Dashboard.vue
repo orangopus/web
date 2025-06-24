@@ -104,7 +104,7 @@
           @click="viewProject(project.id)"
         >
           <div class="project-image">
-            <img :src="project.image_url" :alt="project.title" />
+            <img :src="project.image_url || '/default-project.jpg'" :alt="project.title" />
             <div class="project-status" :class="project.status">
               {{ project.status }}
             </div>
@@ -116,10 +116,10 @@
             
             <div class="project-meta">
               <div class="project-stats">
-                <span class="stat">👁️ {{ project.views }}</span>
-                <span class="stat">❤️ {{ project.likes }}</span>
+                <span class="stat">👁️ {{ project.views_count || 0 }}</span>
+                <span class="stat">❤️ {{ project.likes_count || 0 }}</span>
               </div>
-              <div class="project-category">{{ project.category }}</div>
+              <div class="project-category">{{ project.category || 'Uncategorized' }}</div>
             </div>
             
             <div class="project-technologies">
@@ -167,98 +167,10 @@
     <!-- Create Project Modal -->
     <div v-if="showCreateProject" class="modal-overlay" @click="showCreateProject = false">
       <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3>Create New Project</h3>
-          <button @click="showCreateProject = false" class="close-button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-        
-        <form @submit.prevent="createProject" class="project-form">
-          <div class="form-group">
-            <label for="title">Project Title</label>
-            <input
-              id="title"
-              v-model="newProject.title"
-              type="text"
-              required
-              placeholder="Enter project title"
-            />
-          </div>
-          
-          <div class="form-group">
-            <label for="description">Description</label>
-            <textarea
-              id="description"
-              v-model="newProject.description"
-              required
-              placeholder="Describe your project..."
-              rows="3"
-            ></textarea>
-          </div>
-          
-          <div class="form-group">
-            <label for="category">Category</label>
-            <select id="category" v-model="newProject.category" required>
-              <option value="">Select category</option>
-              <option v-for="category in categories" :key="category" :value="category">
-                {{ category }}
-              </option>
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label for="technologies">Technologies (comma-separated)</label>
-            <input
-              id="technologies"
-              v-model="technologiesInput"
-              type="text"
-              placeholder="React, TypeScript, Node.js"
-            />
-          </div>
-          
-          <div class="form-group">
-            <label for="image_url">Project Image URL</label>
-            <input
-              id="image_url"
-              v-model="newProject.image_url"
-              type="url"
-              placeholder="https://example.com/image.jpg"
-            />
-          </div>
-          
-          <div class="form-group">
-            <label for="github_url">GitHub URL (optional)</label>
-            <input
-              id="github_url"
-              v-model="newProject.github_url"
-              type="url"
-              placeholder="https://github.com/username/repo"
-            />
-          </div>
-          
-          <div class="form-group">
-            <label for="live_url">Live Demo URL (optional)</label>
-            <input
-              id="live_url"
-              v-model="newProject.live_url"
-              type="url"
-              placeholder="https://your-app.com"
-            />
-          </div>
-          
-          <div class="form-actions">
-            <button type="button" @click="showCreateProject = false" class="cancel-button">
-              Cancel
-            </button>
-            <button type="submit" class="create-button" :disabled="creating">
-              <span v-if="creating" class="loading-spinner"></span>
-              {{ creating ? 'Creating...' : 'Create Project' }}
-            </button>
-          </div>
-        </form>
+        <ProjectForm 
+          @close="showCreateProject = false"
+          @success="handleProjectCreated"
+        />
       </div>
     </div>
   </div>
@@ -268,6 +180,7 @@
 import { defineComponent } from "vue";
 import { authService, AuthState, User } from "@/services/authService";
 import { projectService, Project } from "@/services/projectService";
+import ProjectForm from "@/components/ProjectForm.vue";
 
 interface DashboardStats {
   totalProjects: number;
@@ -295,6 +208,9 @@ interface NewProject {
 
 export default defineComponent({
   name: "Dashboard",
+  components: {
+    ProjectForm
+  },
   data() {
     return {
       authState: {
@@ -313,17 +229,6 @@ export default defineComponent({
       loading: false,
       showCreateProject: false,
       showImportProject: false,
-      creating: false,
-      newProject: {
-        title: '',
-        description: '',
-        category: '',
-        technologies: [],
-        image_url: '',
-        github_url: '',
-        live_url: ''
-      } as NewProject,
-      technologiesInput: '',
       unsubscribe: () => {}
     };
   },
@@ -352,7 +257,7 @@ export default defineComponent({
       
       try {
         // Load user projects
-        const projectsResult = await projectService.getUserProjects();
+        const projectsResult = await projectService.getProjects({ userId: this.user?.id });
         if (projectsResult.success && projectsResult.projects) {
           this.projects = projectsResult.projects;
           this.calculateStats();
@@ -371,8 +276,8 @@ export default defineComponent({
       this.stats = {
         totalProjects: this.projects.length,
         publishedProjects: this.projects.filter(p => p.status === 'published').length,
-        totalViews: this.projects.reduce((sum, p) => sum + (p.views || 0), 0),
-        totalLikes: this.projects.reduce((sum, p) => sum + (p.likes || 0), 0)
+        totalViews: this.projects.reduce((sum, p) => sum + (p.views_count || 0), 0),
+        totalLikes: this.projects.reduce((sum, p) => sum + (p.likes_count || 0), 0)
       };
     },
     
@@ -400,69 +305,24 @@ export default defineComponent({
       ];
     },
     
-    async createProject() {
-      this.creating = true;
-      
-      try {
-        // Parse technologies
-        const technologies = this.technologiesInput
-          .split(',')
-          .map(tech => tech.trim())
-          .filter(tech => tech.length > 0);
-        
-        const projectData = {
-          ...this.newProject,
-          technologies
-        };
-        
-        const result = await projectService.createProject(projectData);
-        
-        if (result.success) {
-          this.showCreateProject = false;
-          this.resetNewProject();
-          await this.loadDashboardData();
-          this.$emit('project-created', result.project);
-        } else {
-          console.error('Error creating project:', result.error);
-        }
-      } catch (error) {
-        console.error('Error creating project:', error);
-      } finally {
-        this.creating = false;
-      }
-    },
-    
-    resetNewProject() {
-      this.newProject = {
-        title: '',
-        description: '',
-        category: '',
-        technologies: [],
-        image_url: '',
-        github_url: '',
-        live_url: ''
-      };
-      this.technologiesInput = '';
-    },
-    
     viewProject(projectId: string) {
       // Navigate to project detail page
-      console.log('View project:', projectId);
+      this.$router.push(`/project/${projectId}`);
     },
     
     navigateToProjects() {
       // Navigate to projects page
-      console.log('Navigate to projects');
+      this.$router.push('/#projects');
     },
     
     navigateToProfile() {
       // Navigate to profile page
-      console.log('Navigate to profile');
+      this.$router.push('/profile');
     },
     
     navigateToCommunity() {
       // Navigate to community page
-      console.log('Navigate to community');
+      this.$router.push('/#community');
     },
     
     getActivityIcon(type: string): string {
@@ -491,6 +351,14 @@ export default defineComponent({
       } else {
         return `${days}d ago`;
       }
+    },
+    
+    handleProjectCreated(project: Project) {
+      // Handle project creation logic
+      console.log('Project created:', project);
+      this.showCreateProject = false;
+      this.loadDashboardData();
+      this.$emit('project-created', project);
     }
   }
 });

@@ -146,6 +146,45 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users FOR EACH RO
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON public.projects FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON public.posts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+-- Function to increment project likes count
+CREATE OR REPLACE FUNCTION public.increment_project_likes(project_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.projects 
+  SET likes_count = likes_count + 1 
+  WHERE id = project_id;
+END;
+$$;
+
+-- Function to decrement project likes count
+CREATE OR REPLACE FUNCTION public.decrement_project_likes(project_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.projects 
+  SET likes_count = GREATEST(likes_count - 1, 0)
+  WHERE id = project_id;
+END;
+$$;
+
+-- Function to increment project views count
+CREATE OR REPLACE FUNCTION public.increment_project_views(project_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.projects 
+  SET views_count = views_count + 1 
+  WHERE id = project_id;
+END;
+$$;
+
 
 -- =================================================================
 -- 4. ROW LEVEL SECURITY (RLS)

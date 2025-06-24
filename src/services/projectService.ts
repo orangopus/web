@@ -2,30 +2,36 @@ import { supabase } from '@/lib/supabase'
 
 export interface Project {
   id: string
+  user_id: string
   title: string
   description: string
-  image_url: string
+  image_url?: string
   github_url?: string
   live_url?: string
   technologies: string[]
-  category: string
   status: 'draft' | 'published' | 'archived'
-  user_id: string
+  category?: string
+  difficulty_level?: 'beginner' | 'intermediate' | 'advanced'
+  featured: boolean
+  likes_count: number
+  views_count: number
   created_at: string
   updated_at: string
-  likes: number
-  views: number
-  featured: boolean
+  slug?: string
+  // User info for display
+  user_name?: string
+  user_avatar?: string
 }
 
 export interface CreateProjectData {
   title: string
   description: string
-  image_url: string
+  image_url?: string
   github_url?: string
   live_url?: string
   technologies: string[]
-  category: string
+  category?: string
+  difficulty_level?: 'beginner' | 'intermediate' | 'advanced'
 }
 
 export interface UpdateProjectData extends Partial<CreateProjectData> {
@@ -57,26 +63,24 @@ class ProjectService {
     return null
   }
 
-  async createProject(data: CreateProjectData): Promise<{ success: boolean; project?: Project; error?: string }> {
+  async createProject(projectData: CreateProjectData): Promise<{ success: boolean; project?: Project; error?: string }> {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         return { success: false, error: 'User not authenticated' }
       }
 
-      const { data: project, error } = await supabase
+      const { data, error } = await supabase
         .from('projects')
         .insert({
-          ...data,
           user_id: user.id,
+          ...projectData,
           status: 'draft',
-          likes: 0,
-          views: 0,
           featured: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          likes_count: 0,
+          views_count: 0
         })
-        .select()
+        .select('*')
         .single()
 
       if (error) {
@@ -87,29 +91,131 @@ class ProjectService {
       // Clear cache
       this.clearCache()
 
-      return { success: true, project }
+      return { success: true, project: data }
     } catch (error) {
-      console.error('Error creating project:', error)
-      return { success: false, error: 'An error occurred while creating the project' }
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      return { success: false, error: errorMessage }
     }
   }
 
-  async updateProject(projectId: string, data: UpdateProjectData): Promise<{ success: boolean; project?: Project; error?: string }> {
+  async getProjects(options: {
+    status?: 'draft' | 'published' | 'archived'
+    featured?: boolean
+    category?: string
+    difficulty_level?: string
+    limit?: number
+    offset?: number
+    userId?: string
+  } = {}): Promise<{ success: boolean; projects?: Project[]; error?: string }> {
+    try {
+      let query = supabase
+        .from('projects')
+        .select(`
+          *,
+          users:user_id (
+            name,
+            avatar_url
+          )
+        `)
+        .order('created_at', { ascending: false })
+
+      // Apply filters
+      if (options.status) {
+        query = query.eq('status', options.status)
+      }
+      if (options.featured !== undefined) {
+        query = query.eq('featured', options.featured)
+      }
+      if (options.category) {
+        query = query.eq('category', options.category)
+      }
+      if (options.difficulty_level) {
+        query = query.eq('difficulty_level', options.difficulty_level)
+      }
+      if (options.userId) {
+        query = query.eq('user_id', options.userId)
+      }
+
+      // Apply pagination
+      if (options.limit) {
+        query = query.limit(options.limit)
+      }
+      if (options.offset) {
+        query = query.range(options.offset, options.offset + (options.limit || 10) - 1)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Error fetching projects:', error)
+        return { success: false, error: error.message }
+      }
+
+      // Transform data to include user info
+      const projects = data?.map(project => ({
+        ...project,
+        user_name: project.users?.name,
+        user_avatar: project.users?.avatar_url
+      })) || []
+
+      return { success: true, projects }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  async getProject(id: string): Promise<{ success: boolean; project?: Project; error?: string }> {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          users:user_id (
+            name,
+            avatar_url
+          )
+        `)
+        .eq('id', id)
+        .single()
+
+      if (error) {
+        console.error('Error fetching project:', error)
+        return { success: false, error: error.message }
+      }
+
+      // Increment view count
+      await this.incrementViewCount(id)
+
+      const project = {
+        ...data,
+        user_name: data.users?.name,
+        user_avatar: data.users?.avatar_url
+      }
+
+      return { success: true, project }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  async updateProject(id: string, updates: UpdateProjectData): Promise<{ success: boolean; project?: Project; error?: string }> {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         return { success: false, error: 'User not authenticated' }
       }
 
-      const { data: project, error } = await supabase
+      const { data, error } = await supabase
         .from('projects')
         .update({
-          ...data,
+          ...updates,
           updated_at: new Date().toISOString()
         })
-        .eq('id', projectId)
-        .eq('user_id', user.id)
-        .select()
+        .eq('id', id)
+        .eq('user_id', user.id) // Ensure user owns the project
+        .select('*')
         .single()
 
       if (error) {
@@ -117,17 +223,14 @@ class ProjectService {
         return { success: false, error: error.message }
       }
 
-      // Clear cache
-      this.clearCache()
-
-      return { success: true, project }
+      return { success: true, project: data }
     } catch (error) {
-      console.error('Error updating project:', error)
-      return { success: false, error: 'An error occurred while updating the project' }
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      return { success: false, error: errorMessage }
     }
   }
 
-  async deleteProject(projectId: string): Promise<{ success: boolean; error?: string }> {
+  async deleteProject(id: string): Promise<{ success: boolean; error?: string }> {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -137,139 +240,18 @@ class ProjectService {
       const { error } = await supabase
         .from('projects')
         .delete()
-        .eq('id', projectId)
-        .eq('user_id', user.id)
+        .eq('id', id)
+        .eq('user_id', user.id) // Ensure user owns the project
 
       if (error) {
         console.error('Error deleting project:', error)
         return { success: false, error: error.message }
       }
 
-      // Clear cache
-      this.clearCache()
-
       return { success: true }
     } catch (error) {
-      console.error('Error deleting project:', error)
-      return { success: false, error: 'An error occurred while deleting the project' }
-    }
-  }
-
-  async getUserProjects(userId?: string): Promise<{ success: boolean; projects?: Project[]; error?: string }> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        return { success: false, error: 'User not authenticated' }
-      }
-
-      const targetUserId = userId || user.id
-      const cacheKey = `user_projects_${targetUserId}`
-      const cached = this.getCache(cacheKey)
-      if (cached) return { success: true, projects: cached }
-
-      const { data: projects, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('user_id', targetUserId)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error fetching user projects:', error)
-        return { success: false, error: error.message }
-      }
-
-      this.setCache(cacheKey, projects)
-      return { success: true, projects }
-    } catch (error) {
-      console.error('Error fetching user projects:', error)
-      return { success: false, error: 'An error occurred while fetching projects' }
-    }
-  }
-
-  async getPublishedProjects(category?: string, limit?: number): Promise<{ success: boolean; projects?: Project[]; error?: string }> {
-    try {
-      const cacheKey = `published_projects_${category || 'all'}_${limit || 'all'}`
-      const cached = this.getCache(cacheKey)
-      if (cached) return { success: true, projects: cached }
-
-      let query = supabase
-        .from('projects')
-        .select('*')
-        .eq('status', 'published')
-        .order('created_at', { ascending: false })
-
-      if (category) {
-        query = query.eq('category', category)
-      }
-
-      if (limit) {
-        query = query.limit(limit)
-      }
-
-      const { data: projects, error } = await query
-
-      if (error) {
-        console.error('Error fetching published projects:', error)
-        return { success: false, error: error.message }
-      }
-
-      this.setCache(cacheKey, projects)
-      return { success: true, projects }
-    } catch (error) {
-      console.error('Error fetching published projects:', error)
-      return { success: false, error: 'An error occurred while fetching projects' }
-    }
-  }
-
-  async getFeaturedProjects(): Promise<{ success: boolean; projects?: Project[]; error?: string }> {
-    try {
-      const cacheKey = 'featured_projects'
-      const cached = this.getCache(cacheKey)
-      if (cached) return { success: true, projects: cached }
-
-      const { data: projects, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('status', 'published')
-        .eq('featured', true)
-        .order('created_at', { ascending: false })
-        .limit(6)
-
-      if (error) {
-        console.error('Error fetching featured projects:', error)
-        return { success: false, error: error.message }
-      }
-
-      this.setCache(cacheKey, projects)
-      return { success: true, projects }
-    } catch (error) {
-      console.error('Error fetching featured projects:', error)
-      return { success: false, error: 'An error occurred while fetching featured projects' }
-    }
-  }
-
-  async getProject(projectId: string): Promise<{ success: boolean; project?: Project; error?: string }> {
-    try {
-      const cacheKey = `project_${projectId}`
-      const cached = this.getCache(cacheKey)
-      if (cached) return { success: true, project: cached }
-
-      const { data: project, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .single()
-
-      if (error) {
-        console.error('Error fetching project:', error)
-        return { success: false, error: error.message }
-      }
-
-      this.setCache(cacheKey, project)
-      return { success: true, project }
-    } catch (error) {
-      console.error('Error fetching project:', error)
-      return { success: false, error: 'An error occurred while fetching the project' }
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      return { success: false, error: errorMessage }
     }
   }
 
@@ -280,27 +262,43 @@ class ProjectService {
         return { success: false, error: 'User not authenticated' }
       }
 
-      // First, get current project
-      const { data: project, error: fetchError } = await supabase
-        .from('projects')
-        .select('likes')
-        .eq('id', projectId)
+      // Check if already liked
+      const { data: existingLike } = await supabase
+        .from('project_likes')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
         .single()
 
-      if (fetchError) {
-        console.error('Error fetching project for like:', fetchError)
-        return { success: false, error: fetchError.message }
-      }
+      if (existingLike) {
+        // Unlike
+        const { error: unlikeError } = await supabase
+          .from('project_likes')
+          .delete()
+          .eq('project_id', projectId)
+          .eq('user_id', user.id)
 
-      // Update likes count
-      const { error: updateError } = await supabase
-        .from('projects')
-        .update({ likes: (project.likes || 0) + 1 })
-        .eq('id', projectId)
+        if (unlikeError) {
+          return { success: false, error: unlikeError.message }
+        }
 
-      if (updateError) {
-        console.error('Error updating project likes:', updateError)
-        return { success: false, error: updateError.message }
+        // Decrement likes count
+        await supabase.rpc('decrement_project_likes', { project_id: projectId })
+      } else {
+        // Like
+        const { error: likeError } = await supabase
+          .from('project_likes')
+          .insert({
+            project_id: projectId,
+            user_id: user.id
+          })
+
+        if (likeError) {
+          return { success: false, error: likeError.message }
+        }
+
+        // Increment likes count
+        await supabase.rpc('increment_project_likes', { project_id: projectId })
       }
 
       // Clear cache
@@ -308,54 +306,94 @@ class ProjectService {
 
       return { success: true }
     } catch (error) {
-      console.error('Error liking project:', error)
-      return { success: false, error: 'An error occurred while liking the project' }
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      return { success: false, error: errorMessage }
     }
   }
 
-  async incrementViews(projectId: string): Promise<void> {
+  async isProjectLiked(projectId: string): Promise<{ success: boolean; liked?: boolean; error?: string }> {
     try {
-      const { data: project, error: fetchError } = await supabase
-        .from('projects')
-        .select('views')
-        .eq('id', projectId)
-        .single()
-
-      if (fetchError) {
-        console.error('Error fetching project for view increment:', fetchError)
-        return
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        return { success: true, liked: false }
       }
 
-      await supabase
-        .from('projects')
-        .update({ views: (project.views || 0) + 1 })
-        .eq('id', projectId)
+      const { data, error } = await supabase
+        .from('project_likes')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .single()
 
-      // Clear cache
-      this.clearCache()
-    } catch (error) {
-      console.error('Error incrementing project views:', error)
-    }
-  }
-
-  async searchProjects(query: string): Promise<{ success: boolean; projects?: Project[]; error?: string }> {
-    try {
-      const { data: projects, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('status', 'published')
-        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error searching projects:', error)
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
         return { success: false, error: error.message }
       }
 
+      return { success: true, liked: !!data }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  private async incrementViewCount(projectId: string): Promise<void> {
+    try {
+      await supabase.rpc('increment_project_views', { project_id: projectId })
+    } catch (error) {
+      console.error('Error incrementing view count:', error)
+    }
+  }
+
+  // Get project categories
+  async getCategories(): Promise<{ success: boolean; categories?: string[]; error?: string }> {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('category')
+        .not('category', 'is', null)
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      const categories = [...new Set(data.map(item => item.category))].filter(Boolean)
+      return { success: true, categories }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  // Search projects
+  async searchProjects(query: string): Promise<{ success: boolean; projects?: Project[]; error?: string }> {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          users:user_id (
+            name,
+            avatar_url
+          )
+        `)
+        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+        .eq('status', 'published')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      const projects = data?.map(project => ({
+        ...project,
+        user_name: project.users?.name,
+        user_avatar: project.users?.avatar_url
+      })) || []
+
       return { success: true, projects }
     } catch (error) {
-      console.error('Error searching projects:', error)
-      return { success: false, error: 'An error occurred while searching projects' }
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      return { success: false, error: errorMessage }
     }
   }
 
@@ -384,6 +422,96 @@ class ProjectService {
 
   clearCache(): void {
     this.cache.clear()
+  }
+
+  async getProjectBySlug(slug: string): Promise<{ success: boolean; project?: Project; error?: string }> {
+    try {
+      // First try to get by slug
+      let { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          users:user_id (
+            name,
+            avatar_url
+          )
+        `)
+        .eq('slug', slug)
+        .eq('status', 'published')
+        .single()
+
+      // If slug column doesn't exist or no project found, try to get by ID (fallback)
+      if (error && (error.code === '42703' || error.code === 'PGRST116')) {
+        // Try to get by ID as fallback (assuming slug might be the ID)
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('projects')
+          .select(`
+            *,
+            users:user_id (
+              name,
+              avatar_url
+            )
+          `)
+          .eq('id', slug)
+          .eq('status', 'published')
+          .single()
+
+        if (fallbackError) {
+          console.error('Error fetching project by slug/ID:', fallbackError)
+          return { success: false, error: 'Project not found' }
+        }
+
+        data = fallbackData
+        error = null
+      } else if (error) {
+        console.error('Error fetching project by slug:', error)
+        return { success: false, error: error.message }
+      }
+
+      if (!data) {
+        return { success: false, error: 'Project not found' }
+      }
+
+      // Increment view count
+      await this.incrementViewCount(data.id)
+
+      const project = {
+        ...data,
+        user_name: data.users?.name,
+        user_avatar: data.users?.avatar_url
+      }
+
+      return { success: true, project }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  async checkProjectLike(projectId: string): Promise<{ success: boolean; liked?: boolean; error?: string }> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        return { success: true, liked: false }
+      }
+
+      const { data, error } = await supabase
+        .from('project_likes')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+        console.error('Error checking project like:', error)
+        return { success: false, error: error.message }
+      }
+
+      return { success: true, liked: !!data }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      return { success: false, error: errorMessage }
+    }
   }
 }
 

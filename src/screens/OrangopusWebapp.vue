@@ -127,6 +127,12 @@ export default defineComponent({
     AuthPage,
     PressKitSection
   },
+  props: {
+    initialView: {
+      type: String,
+      default: 'home'
+    }
+  },
   data() {
     return {
       showAuth: false,
@@ -144,6 +150,7 @@ export default defineComponent({
   mounted() {
     this.initializeAnimations();
     this.handleUrlParameters();
+    this.setInitialView();
     
     // Subscribe to auth state changes
     this.unsubscribe = authService.subscribe((state) => {
@@ -154,6 +161,14 @@ export default defineComponent({
     this.unsubscribe();
   },
   methods: {
+    setInitialView() {
+      if (this.initialView === 'dashboard') {
+        this.showDashboard = true;
+      } else if (this.initialView === 'profile') {
+        this.showProfile = true;
+      }
+    },
+    
     showAuthPage(mode: 'login' | 'signup' = 'login') {
       this.authMode = mode;
       this.showAuth = true;
@@ -273,7 +288,7 @@ export default defineComponent({
 });
 </script>
 
-<style>
+<style scoped>
 .orangopus-webapp {
   background-color: #000000;
   display: flex;
@@ -297,256 +312,41 @@ export default defineComponent({
   background-color: #ffffff;
 }
 
-/* Global styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: "Manrope", Helvetica, Arial, sans-serif;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
-  color: #ffffff;
-  overflow-x: hidden;
-}
-
-#app {
-  min-height: 100vh;
-}
-
-/* Animation classes */
-.animate-on-scroll {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.8s ease;
-}
-
-.animate-on-scroll.animate-in {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 85, 0, 0.5);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 85, 0, 0.7);
-}
-
-/* Selection styles */
-::selection {
-  background: rgba(255, 85, 0, 0.3);
-  color: #ffffff;
-}
-
-/* Focus styles */
-*:focus {
-  outline: 2px solid rgba(255, 85, 0, 0.5);
-  outline-offset: 2px;
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Loading animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Utility classes */
-.text-gradient {
-  background: linear-gradient(135deg, #ffffff 0%, #ff5500 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.glass-effect {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.glow-effect {
-  box-shadow: 0 0 20px rgba(255, 85, 0, 0.3);
-}
-
-.hover-lift {
-  transition: transform 0.3s ease;
-}
-
-.hover-lift:hover {
-  transform: translateY(-5px);
-}
-
-/* Responsive utilities */
-@media (max-width: 768px) {
-  .hide-mobile {
-    display: none !important;
-  }
-}
-
-@media (min-width: 769px) {
-  .hide-desktop {
-    display: none !important;
-  }
-}
-
-/* Accessibility improvements */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .glass-effect {
-    background: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.5);
-  }
-}
-
-/* Loading animations */
-.loading-spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid #ff5500;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Dashboard and Profile Views */
 .dashboard-view,
 .profile-view {
   padding-top: 70px;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
 }
 
 .dashboard-header,
 .profile-header {
-  position: fixed;
-  top: 70px;
-  left: 0;
-  right: 0;
-  z-index: 999;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(20px);
+  padding: 20px 40px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 16px 40px;
 }
 
 .back-button {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: none;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 8px 16px;
   color: #ffffff;
-  font-family: "Manrope", Helvetica;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 12px 20px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-family: "Manrope", Helvetica;
+  font-size: 16px;
 }
 
 .back-button:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.3);
-  transform: translateX(-4px);
 }
 
-.back-button svg {
-  width: 18px;
-  height: 18px;
-}
-
-/* Landing Page */
-.landing-page {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Responsive Design */
 @media (max-width: 768px) {
   .dashboard-header,
   .profile-header {
-    padding: 12px 20px;
-  }
-  
-  .back-button {
-    padding: 6px 12px;
-    font-size: 13px;
-  }
-  
-  .back-button svg {
-    width: 16px;
-    height: 16px;
+    padding: 20px;
   }
 }
 </style>

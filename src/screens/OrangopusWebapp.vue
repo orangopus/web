@@ -5,7 +5,8 @@
       v-if="showAuth" 
       :initial-mode="authMode" 
       @close="showAuth = false" 
-      @success="handleAuthSuccess" 
+      @success="handleAuthSuccess"
+      @resend-success="handleResendSuccess"
     />
     
     <!-- Main App Content -->
@@ -39,6 +40,7 @@
         <div id="faq">
           <FAQSection />
         </div>
+        <PressKitSection />
         <CTASection />
         <Footer />
         <DonateButton />
@@ -141,6 +143,7 @@ export default defineComponent({
   },
   mounted() {
     this.initializeAnimations();
+    this.handleUrlParameters();
     
     // Subscribe to auth state changes
     this.unsubscribe = authService.subscribe((state) => {
@@ -163,6 +166,16 @@ export default defineComponent({
         notification.success(
           'Welcome!',
           'You have successfully signed in to Orangopus.'
+        );
+      }
+    },
+
+    handleResendSuccess() {
+      const notification = this.$refs.notification as NotificationComponent;
+      if (notification) {
+        notification.success(
+          'Email Sent!',
+          'A new confirmation email has been sent to your inbox.'
         );
       }
     },
@@ -215,6 +228,45 @@ export default defineComponent({
           'Profile Updated!',
           'Your profile has been updated successfully.'
         );
+      }
+    },
+
+    handleUrlParameters() {
+      // Handle URL parameters for authentication errors (both query params and hash)
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      
+      // Check query parameters first
+      let error = urlParams.get('error');
+      let errorCode = urlParams.get('error_code');
+      let errorDescription = urlParams.get('error_description');
+      
+      // If not found in query params, check hash params
+      if (!error) {
+        error = hashParams.get('error');
+        errorCode = hashParams.get('error_code');
+        errorDescription = hashParams.get('error_description');
+      }
+      
+      if (error) {
+        const notification = this.$refs.notification as NotificationComponent;
+        if (notification) {
+          let message = error;
+          if (errorCode === 'otp_expired') {
+            message = 'The email confirmation link has expired. Please try signing up again.';
+          } else if (errorDescription) {
+            message = decodeURIComponent(errorDescription);
+          }
+          
+          notification.error(
+            'Authentication Error',
+            message
+          );
+        }
+        
+        // Clear the URL parameters to prevent showing the error again
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
       }
     }
   }

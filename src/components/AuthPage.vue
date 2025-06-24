@@ -22,13 +22,13 @@
 
         <div class="auth-tabs">
           <button 
-            @click="isLogin = true" 
+            @click="isLogin = true; resetSignupSuccess()" 
             :class="['tab-button', { active: isLogin }]"
           >
             Sign In
           </button>
           <button 
-            @click="isLogin = false" 
+            @click="isLogin = false; resetSignupSuccess()" 
             :class="['tab-button', { active: !isLogin }]"
           >
             Sign Up
@@ -74,6 +74,20 @@
 
           <div v-if="authState.error" class="error-message">
             {{ authState.error }}
+          </div>
+
+          <div v-if="signupSuccess" class="success-message">
+            <h3>Check your email!</h3>
+            <p>We've sent you a confirmation link. Please check your email and click the link to complete your registration.</p>
+            <p class="email-note">Didn't receive the email? Check your spam folder or try signing up again.</p>
+            <div class="success-actions">
+              <button @click="resendConfirmation()" class="resend-button" :disabled="resendLoading">
+                {{ resendLoading ? 'Sending...' : 'Resend Email' }}
+              </button>
+              <button @click="resetSignupSuccess()" class="try-again-button">
+                Try Again
+              </button>
+            </div>
           </div>
 
           <button 
@@ -148,7 +162,9 @@ export default defineComponent({
         loading: false,
         error: null
       } as AuthState,
-      unsubscribe: () => {}
+      unsubscribe: () => {},
+      signupSuccess: false,
+      resendLoading: false
     };
   },
   watch: {
@@ -177,8 +193,28 @@ export default defineComponent({
       } else {
         const result = await authService.signUp(this.form.email, this.form.password, this.form.name);
         if (result.success) {
-          this.$emit('success');
+          this.signupSuccess = true;
         }
+      }
+    },
+
+    resetSignupSuccess() {
+      this.signupSuccess = false;
+    },
+
+    async resendConfirmation() {
+      this.resendLoading = true;
+      try {
+        const result = await authService.resendConfirmation(this.form.email);
+        if (result.success) {
+          this.$emit('resend-success');
+        } else {
+          this.authState.error = result.error || 'Failed to resend confirmation email';
+        }
+      } catch (error) {
+        this.authState.error = 'Failed to resend confirmation email';
+      } finally {
+        this.resendLoading = false;
       }
     }
   }
@@ -404,6 +440,81 @@ export default defineComponent({
   font-family: "Manrope", Helvetica;
   font-size: 14px;
   text-align: center;
+}
+
+.success-message {
+  background: rgba(52, 199, 89, 0.1);
+  border: 1px solid rgba(52, 199, 89, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.success-message h3 {
+  color: #34c759;
+  font-family: "Manrope", Helvetica;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.success-message p {
+  color: rgba(255, 255, 255, 0.9);
+  font-family: "Manrope", Helvetica;
+  font-size: 14px;
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.success-message .email-note {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-style: italic;
+  margin-top: 12px;
+}
+
+.success-actions {
+  display: flex;
+  justify-content: space-around;
+  gap: 12px;
+}
+
+.resend-button {
+  background: none;
+  border: none;
+  color: #ff5500;
+  font-family: "Manrope", Helvetica;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.3s ease;
+}
+
+.resend-button:hover {
+  color: #ff7a00;
+}
+
+.resend-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.try-again-button {
+  background: none;
+  border: none;
+  color: #ff5500;
+  font-family: "Manrope", Helvetica;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.3s ease;
+}
+
+.try-again-button:hover {
+  color: #ff7a00;
 }
 
 .submit-button {

@@ -2,7 +2,6 @@ import { supabase } from '@/lib/supabase'
 
 export interface User {
   id: string
-  email: string
   name: string
   avatar_url?: string
   github_username?: string
@@ -84,19 +83,19 @@ class AuthService {
       }
 
       if (data.user) {
-        // Create user profile
+        // The user profile is automatically created by the database trigger
+        // We only need to update it if the trigger didn't set the name properly
         const { error: profileError } = await supabase
           .from('users')
-          .insert({
-            id: data.user.id,
-            email: data.user.email!,
+          .update({
             name: name,
-            created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
+          .eq('id', data.user.id)
 
         if (profileError) {
-          console.error('Error creating user profile:', profileError)
+          console.error('Error updating user profile:', profileError)
+          // Don't fail the signup if profile update fails
         }
       }
 
@@ -231,6 +230,29 @@ class AuthService {
 
   getCurrentUser(): User | null {
     return this.currentUser
+  }
+
+  async getUserEmail(): Promise<string | null> {
+    const { data: { user } } = await supabase.auth.getUser()
+    return user?.email || null
+  }
+
+  async resendConfirmation(email: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      return { success: true }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      return { success: false, error: errorMessage }
+    }
   }
 }
 

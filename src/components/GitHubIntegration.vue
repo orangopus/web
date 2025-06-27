@@ -117,6 +117,9 @@
               <button @click.stop="shareRepository(repo)" class="action-btn share-btn">
                 Share
               </button>
+              <button @click.stop="importProject(repo)" class="action-btn import-btn">
+                Import as Project
+              </button>
             </div>
           </div>
         </div>
@@ -354,8 +357,8 @@ export default defineComponent({
     },
     
     async importProject(repo: Repository) {
-      // TODO: Open Orangopus project form pre-filled with repo data
-      alert(`Importing ${repo.name} as a project!`);
+      // Emit event to parent to open project form pre-filled with repo data
+      this.$emit('import-repository', repo);
     },
   }
 });
@@ -779,6 +782,11 @@ export default defineComponent({
 }
 
 .share-btn:hover {
+  background: rgba(0, 255, 0, 0.2);
+  border-color: rgba(0, 255, 0, 0.4);
+}
+
+.import-btn:hover {
   background: rgba(0, 255, 0, 0.2);
   border-color: rgba(0, 255, 0, 0.4);
 }

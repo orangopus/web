@@ -50,7 +50,7 @@
           <p>Start building something amazing</p>
         </button>
         
-        <button @click="showImportProject = true" class="action-card">
+        <button @click="showGitHubImport = true" class="action-card">
           <div class="action-icon">📥</div>
           <h3>Import from GitHub</h3>
           <p>Connect your existing repositories</p>
@@ -90,10 +90,15 @@
       <div v-else-if="projects.length === 0" class="empty-state">
         <div class="empty-icon">📁</div>
         <h3>No projects yet</h3>
-        <p>Start by creating your first project</p>
-        <button @click="showCreateProject = true" class="create-button">
-          Create Your First Project
-        </button>
+        <p>Start by creating your first project or importing from GitHub</p>
+        <div class="empty-actions">
+          <button @click="showCreateProject = true" class="create-button">
+            Create Your First Project
+          </button>
+          <button @click="showGitHubImport = true" class="import-button">
+            Import from GitHub
+          </button>
+        </div>
       </div>
       
       <div v-else class="projects-grid">
@@ -107,6 +112,14 @@
             <img :src="project.image_url || '/default-project.jpg'" :alt="project.title" />
             <div class="project-status" :class="project.status">
               {{ project.status }}
+            </div>
+            <div class="project-actions">
+              <button @click.stop="editProject(project)" class="edit-btn" title="Edit Project">
+                ✏️
+              </button>
+              <button @click.stop="toggleProjectStatus(project)" class="status-btn" :title="project.status === 'published' ? 'Unpublish' : 'Publish'">
+                {{ project.status === 'published' ? '📤' : '📤' }}
+              </button>
             </div>
           </div>
           
@@ -173,6 +186,33 @@
         />
       </div>
     </div>
+
+    <!-- GitHub Import Modal -->
+    <div v-if="showGitHubImport" class="modal-overlay" @click="showGitHubImport = false">
+      <div class="modal github-modal" @click.stop>
+        <div class="modal-header">
+          <h3>Import from GitHub</h3>
+          <button @click="showGitHubImport = false" class="close-btn">×</button>
+        </div>
+        <div class="modal-body">
+          <GitHubImport 
+            @close="showGitHubImport = false"
+            @project-imported="handleProjectImported"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Project Modal -->
+    <div v-if="showEditProject && selectedProject" class="modal-overlay" @click="showEditProject = false">
+      <div class="modal" @click.stop>
+        <ProjectForm 
+          :project="selectedProject"
+          @close="showEditProject = false"
+          @success="handleProjectUpdated"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -181,6 +221,7 @@ import { defineComponent } from "vue";
 import { authService, AuthState, User } from "@/services/authService";
 import { projectService, Project } from "@/services/projectService";
 import ProjectForm from "@/components/ProjectForm.vue";
+import GitHubImport from "@/components/GitHubImport.vue";
 
 interface DashboardStats {
   totalProjects: number;
@@ -191,25 +232,17 @@ interface DashboardStats {
 
 interface Activity {
   id: string;
-  type: 'project_created' | 'project_updated' | 'project_published' | 'project_liked';
+  type: 'project_created' | 'project_updated' | 'project_published' | 'project_liked' | 'project_imported';
   message: string;
   created_at: string;
-}
-
-interface NewProject {
-  title: string;
-  description: string;
-  category: string;
-  technologies: string[];
-  image_url: string;
-  github_url?: string;
-  live_url?: string;
+  project_id?: string;
 }
 
 export default defineComponent({
   name: "Dashboard",
   components: {
-    ProjectForm
+    ProjectForm,
+    GitHubImport
   },
   data() {
     return {
@@ -228,7 +261,9 @@ export default defineComponent({
       } as DashboardStats,
       loading: false,
       showCreateProject: false,
-      showImportProject: false,
+      showGitHubImport: false,
+      showEditProject: false,
+      selectedProject: null as Project | null,
       unsubscribe: () => {}
     };
   },
@@ -263,8 +298,8 @@ export default defineComponent({
           this.calculateStats();
         }
         
-        // Load activities (mock data for now)
-        this.loadActivities();
+        // Load real activities
+        await this.loadActivities();
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
@@ -281,33 +316,81 @@ export default defineComponent({
       };
     },
     
-    loadActivities() {
-      // Mock activities - in a real app, this would come from the database
-      this.activities = [
-        {
-          id: '1',
+    async loadActivities() {
+      // Generate real activities based on project data
+      const activities: Activity[] = [];
+      
+      // Add project creation activities
+      this.projects.forEach(project => {
+        activities.push({
+          id: `created_${project.id}`,
           type: 'project_created',
-          message: 'Created new project "Amazing Web App"',
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: '2',
-          type: 'project_published',
-          message: 'Published project "Mobile Game"',
-          created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: '3',
-          type: 'project_liked',
-          message: 'Your project "AI Chatbot" received 5 new likes',
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+          message: `Created project "${project.title}"`,
+          created_at: project.created_at,
+          project_id: project.id
+        });
+        
+        if (project.status === 'published') {
+          activities.push({
+            id: `published_${project.id}`,
+            type: 'project_published',
+            message: `Published project "${project.title}"`,
+            created_at: project.updated_at,
+            project_id: project.id
+          });
         }
-      ];
+      });
+      
+      // Sort by date (newest first) and take last 10
+      this.activities = activities
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 10);
+    },
+    
+    async addActivity(activity: Omit<Activity, 'id'>) {
+      const newActivity: Activity = {
+        ...activity,
+        id: `${activity.type}_${Date.now()}`
+      };
+      
+      this.activities.unshift(newActivity);
+      this.activities = this.activities.slice(0, 10); // Keep only 10 most recent
     },
     
     viewProject(projectId: string) {
       // Navigate to project detail page
       this.$router.push(`/project/${projectId}`);
+    },
+    
+    editProject(project: Project) {
+      this.selectedProject = project;
+      this.showEditProject = true;
+    },
+    
+    async toggleProjectStatus(project: Project) {
+      try {
+        const newStatus = project.status === 'published' ? 'draft' : 'published';
+        const result = await projectService.updateProject(project.id, { status: newStatus });
+        
+        if (result.success) {
+          // Update local project
+          const index = this.projects.findIndex(p => p.id === project.id);
+          if (index !== -1) {
+            this.projects[index] = { ...project, status: newStatus };
+            this.calculateStats();
+          }
+          
+          // Add activity
+          await this.addActivity({
+            type: newStatus === 'published' ? 'project_published' : 'project_updated',
+            message: `${newStatus === 'published' ? 'Published' : 'Unpublished'} project "${project.title}"`,
+            created_at: new Date().toISOString(),
+            project_id: project.id
+          });
+        }
+      } catch (error) {
+        console.error('Error toggling project status:', error);
+      }
     },
     
     navigateToProjects() {
@@ -330,7 +413,8 @@ export default defineComponent({
         project_created: '➕',
         project_updated: '✏️',
         project_published: '🚀',
-        project_liked: '❤️'
+        project_liked: '❤️',
+        project_imported: '📥'
       };
       return icons[type] || '📝';
     },
@@ -353,12 +437,50 @@ export default defineComponent({
       }
     },
     
-    handleProjectCreated(project: Project) {
-      // Handle project creation logic
-      console.log('Project created:', project);
+    async handleProjectCreated(project: Project) {
       this.showCreateProject = false;
-      this.loadDashboardData();
+      await this.loadDashboardData();
+      
+      // Add activity
+      await this.addActivity({
+        type: 'project_created',
+        message: `Created project "${project.title}"`,
+        created_at: new Date().toISOString(),
+        project_id: project.id
+      });
+      
       this.$emit('project-created', project);
+    },
+    
+    async handleProjectUpdated(project: Project) {
+      this.showEditProject = false;
+      this.selectedProject = null;
+      await this.loadDashboardData();
+      
+      // Add activity
+      await this.addActivity({
+        type: 'project_updated',
+        message: `Updated project "${project.title}"`,
+        created_at: new Date().toISOString(),
+        project_id: project.id
+      });
+      
+      this.$emit('project-updated', project);
+    },
+    
+    async handleProjectImported(project: Project) {
+      this.showGitHubImport = false;
+      await this.loadDashboardData();
+      
+      // Add activity
+      await this.addActivity({
+        type: 'project_imported',
+        message: `Imported project "${project.title}" from GitHub`,
+        created_at: new Date().toISOString(),
+        project_id: project.id
+      });
+      
+      this.$emit('project-imported', project);
     }
   }
 });
@@ -604,6 +726,24 @@ export default defineComponent({
   box-shadow: 0 8px 25px rgba(255, 85, 0, 0.3);
 }
 
+.import-button {
+  background: linear-gradient(135deg, #ff5500 0%, #ff7a00 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-family: "Manrope", Helvetica;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.import-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 85, 0, 0.3);
+}
+
 .projects-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -627,8 +767,10 @@ export default defineComponent({
 
 .project-image {
   position: relative;
+  width: 100%;
   height: 200px;
   overflow: hidden;
+  border-radius: 12px 12px 0 0;
 }
 
 .project-image img {
@@ -838,7 +980,7 @@ export default defineComponent({
   margin: 0;
 }
 
-.close-button {
+.close-btn {
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.7);
@@ -848,17 +990,17 @@ export default defineComponent({
   transition: all 0.3s ease;
 }
 
-.close-button:hover {
+.close-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
 }
 
-.close-button svg {
+.close-btn svg {
   width: 20px;
   height: 20px;
 }
 
-.project-form {
+.modal-body {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -954,5 +1096,63 @@ export default defineComponent({
   .form-actions {
     flex-direction: column;
   }
+}
+
+/* New styles for enhanced dashboard features */
+.empty-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.project-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.project-card:hover .project-actions {
+  opacity: 1;
+}
+
+.edit-btn,
+.status-btn {
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+.edit-btn:hover {
+  background: rgba(255, 193, 7, 0.8);
+  transform: scale(1.1);
+}
+
+.status-btn:hover {
+  background: rgba(76, 175, 80, 0.8);
+  transform: scale(1.1);
+}
+
+.github-modal {
+  max-width: 800px;
+  max-height: 80vh;
+}
+
+.github-modal .modal-body {
+  padding: 0;
 }
 </style> 

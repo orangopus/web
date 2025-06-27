@@ -26,7 +26,7 @@
         </div>
         <MissionStatement />
         <div id="github">
-          <GitHubIntegration @share-repository="handleRepositoryShare" />
+          <GitHubIntegration @share-repository="handleRepositoryShare" @import-repository="handleRepositoryImport" />
         </div>
         <div id="community">
           <SocialFeed @project-created="handleProjectCreated" />
@@ -72,6 +72,12 @@
         </div>
         <UserProfile @profile-updated="handleProfileUpdated" />
       </div>
+      <ProjectForm
+        v-if="showProjectForm"
+        :initial-values="importProjectInitialValues"
+        @close="closeProjectForm"
+        @success="handleProjectCreatedAndClose"
+      />
     </div>
   </div>
 </template>
@@ -79,6 +85,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { authService, AuthState } from "@/services/authService";
+import { type Project, type CreateProjectData } from "@/services/projectService";
 import Navigation from "@/components/Navigation.vue";
 import Notification from "@/components/Notification.vue";
 import Header from "@/components/Header.vue";
@@ -99,12 +106,26 @@ import Dashboard from "@/components/Dashboard.vue";
 import UserProfile from "@/components/UserProfile.vue";
 import AuthPage from "@/components/AuthPage.vue";
 import PressKitSection from "@/components/PressKitSection.vue";
+import ProjectForm from "@/components/ProjectForm.vue";
 
 interface NotificationComponent {
   success: (title: string, message: string, duration?: number) => void;
   error: (title: string, message: string, duration?: number) => void;
   warning: (title: string, message: string, duration?: number) => void;
   info: (title: string, message: string, duration?: number) => void;
+}
+
+// Import Repository interface from GitHubIntegration
+interface Repository {
+  id: number;
+  name: string;
+  description: string | null;
+  private: boolean;
+  html_url: string;
+  stargazers_count: number;
+  forks_count: number;
+  language: string | null;
+  updated_at: string;
 }
 
 export default defineComponent({
@@ -126,7 +147,8 @@ export default defineComponent({
     Dashboard,
     UserProfile,
     AuthPage,
-    PressKitSection
+    PressKitSection,
+    ProjectForm
   },
   props: {
     initialView: {
@@ -145,7 +167,9 @@ export default defineComponent({
         loading: false,
         error: null
       } as AuthState,
-      unsubscribe: () => {}
+      unsubscribe: () => {},
+      showProjectForm: false,
+      importProjectInitialValues: null as Partial<CreateProjectData> | null
     };
   },
   mounted() {
@@ -221,6 +245,31 @@ export default defineComponent({
           `${repository.name} has been shared to the community feed.`
         );
       }
+    },
+
+    handleRepositoryImport(repo: Repository) {
+      // Map GitHub repo fields to project form initial values
+      this.importProjectInitialValues = {
+        title: repo.name,
+        description: repo.description || '',
+        github_url: repo.html_url,
+        technologies: repo.language ? [repo.language] : [],
+        image_url: '',
+        live_url: '',
+        category: '',
+        difficulty_level: undefined
+      };
+      this.showProjectForm = true;
+    },
+
+    closeProjectForm() {
+      this.showProjectForm = false;
+      this.importProjectInitialValues = null;
+    },
+
+    handleProjectCreatedAndClose(project: Project) {
+      this.handleProjectCreated(project);
+      this.closeProjectForm();
     },
 
     handleProjectCreated(project: any) {

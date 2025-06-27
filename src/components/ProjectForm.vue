@@ -180,6 +180,10 @@ export default defineComponent({
     project: {
       type: Object as () => Project | null,
       default: null
+    },
+    initialValues: {
+      type: Object as () => Partial<CreateProjectData> | null,
+      default: null
     }
   },
   data() {
@@ -222,6 +226,12 @@ export default defineComponent({
         technologies: [...this.project.technologies],
         category: this.project.category || '',
         difficulty_level: this.project.difficulty_level || ''
+      }
+    } else if (this.initialValues) {
+      this.form = {
+        ...this.form,
+        ...this.initialValues,
+        technologies: this.initialValues.technologies ? [...this.initialValues.technologies] : []
       }
     }
   },

@@ -75,7 +75,7 @@
             
             <div class="project-meta">
               <div class="project-author">
-                <img :src="authorAvatarUrl(project)" :alt="project.user_name" @error="event => { project.fallbackAvatarUrl = '/default-avatar.svg' }" />
+                <img :src="authorAvatarUrl(project)" :alt="project.user_name" @error="onAvatarError(project.id)" />
                 <span>{{ project.user_name || 'Anonymous' }}</span>
               </div>
               <span class="project-date">{{ formatDate(project.created_at || '') }}</span>
@@ -170,7 +170,8 @@ export default defineComponent({
         { id: "ai-ml", name: "AI/ML" },
         { id: "game", name: "Games" },
         { id: "other", name: "Other" }
-      ] as Filter[]
+      ] as Filter[],
+      fallbackAvatars: {} as Record<string, string>
     };
   },
   computed: {
@@ -181,7 +182,7 @@ export default defineComponent({
       return this.projects.filter(project => project.category === this.activeFilter);
     },
     authorAvatarUrl() {
-      return (project) => project.fallbackAvatarUrl || project.user_avatar || '/default-avatar.svg';
+      return (project: Project) => this.fallbackAvatars[project.id] || project.user_avatar || '/default-avatar.svg';
     }
   },
   mounted() {
@@ -267,6 +268,10 @@ export default defineComponent({
       this.showCreateProject = false;
       this.loadProjects();
       this.$emit('project-created', project);
+    },
+
+    onAvatarError(projectId: string) {
+      this.fallbackAvatars[projectId] = '/default-avatar.svg';
     }
   }
 });

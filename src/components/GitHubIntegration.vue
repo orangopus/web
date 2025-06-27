@@ -157,6 +157,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import { supabase } from '@/lib/supabase';
 
 interface Repository {
   id: number;
@@ -204,7 +205,10 @@ export default defineComponent({
         { id: "public", name: "Public" },
         { id: "private", name: "Private" },
         { id: "starred", name: "Starred" }
-      ] as RepoFilter[]
+      ] as RepoFilter[],
+      githubToken: '',
+      loading: false,
+      error: '',
     };
   },
   computed: {
@@ -221,7 +225,7 @@ export default defineComponent({
   },
   mounted() {
     this.observeElements();
-    this.checkConnection();
+    this.fetchGitHubData();
   },
   methods: {
     observeElements() {
@@ -240,129 +244,57 @@ export default defineComponent({
     
     async toggleConnection() {
       if (this.isConnected) {
-        this.disconnect();
+        await this.disconnectGitHub();
       } else {
-        await this.connect();
+        await this.connectGitHub();
       }
     },
     
-    async connect() {
-      // Simulate GitHub OAuth flow
-      this.isConnected = true;
-      this.userName = "Cheesecastv20053";
-      this.userAvatar = "https://c.animaapp.com/bX3QfjDJ/img/logo.svg";
-      
-      // Load user data
-      await this.loadUserData();
-      await this.loadRepositories();
+    async connectGitHub() {
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
+      if (error) {
+        this.error = error.message;
+      }
     },
     
-    disconnect() {
+    async fetchGitHubData() {
+      this.loading = true;
+      this.error = '';
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.provider_token;
+        if (!token) {
+          this.isConnected = false;
+          return;
+        }
+        this.githubToken = token;
+        this.isConnected = true;
+        // Fetch user info
+        const userRes = await fetch('https://api.github.com/user', {
+          headers: { Authorization: `token ${token}` }
+        });
+        const user = await userRes.json();
+        this.userName = user.login;
+        this.userAvatar = user.avatar_url;
+        // Fetch repos
+        const repoRes = await fetch('https://api.github.com/user/repos?per_page=100', {
+          headers: { Authorization: `token ${token}` }
+        });
+        this.repositories = await repoRes.json();
+      } catch (e: any) {
+        this.error = e.message || 'Failed to fetch GitHub data.';
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    async disconnectGitHub() {
+      await supabase.auth.signOut();
       this.isConnected = false;
-      this.userName = "";
-      this.userAvatar = "";
-      this.userStats = {
-        publicRepos: 0,
-        totalStars: 0,
-        totalForks: 0,
-        followers: 0
-      };
+      this.userName = '';
+      this.userAvatar = '';
       this.repositories = [];
-    },
-    
-    async loadUserData() {
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        this.userStats = {
-          publicRepos: 15,
-          totalStars: 234,
-          totalForks: 67,
-          followers: 89
-        };
-      } catch (error) {
-        console.error('Error loading user data:', error);
-      }
-    },
-    
-    async loadRepositories() {
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Mock data
-        this.repositories = [
-          {
-            id: 1,
-            name: "vue-component-library",
-            description: "A beautiful Vue.js component library for modern web applications",
-            private: false,
-            html_url: "https://github.com/orangopus/vue-component-library",
-            stargazers_count: 23,
-            forks_count: 8,
-            language: "Vue",
-            updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 2,
-            name: "real-time-collab",
-            description: "Real-time collaboration tool with WebSocket support",
-            private: false,
-            html_url: "https://github.com/orangopus/real-time-collab",
-            stargazers_count: 45,
-            forks_count: 12,
-            language: "JavaScript",
-            updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 3,
-            name: "api-gateway",
-            description: "A scalable API gateway for microservices architecture",
-            private: false,
-            html_url: "https://github.com/orangopus/api-gateway",
-            stargazers_count: 31,
-            forks_count: 9,
-            language: "Node.js",
-            updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 4,
-            name: "data-analyzer",
-            description: "A powerful data analysis tool for processing large datasets",
-            private: false,
-            html_url: "https://github.com/orangopus/data-analyzer",
-            stargazers_count: 67,
-            forks_count: 23,
-            language: "Python",
-            updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 5,
-            name: "creative-hub",
-            description: "A collaborative platform for creative projects and ideas",
-            private: false,
-            html_url: "https://github.com/orangopus/creative-hub",
-            stargazers_count: 19,
-            forks_count: 6,
-            language: "React",
-            updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 6,
-            name: "secret-project",
-            description: "A private project under development",
-            private: true,
-            html_url: "https://github.com/orangopus/secret-project",
-            stargazers_count: 0,
-            forks_count: 0,
-            language: "TypeScript",
-            updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-          }
-        ];
-      } catch (error) {
-        console.error('Error loading repositories:', error);
-      }
+      this.githubToken = '';
     },
     
     setRepoFilter(filterId: string) {
@@ -421,11 +353,10 @@ export default defineComponent({
       return `${Math.floor(days / 30)} months ago`;
     },
     
-    checkConnection() {
-      // Check if user is already connected
-      // This would typically check localStorage or a backend session
-      this.isConnected = false;
-    }
+    async importProject(repo: Repository) {
+      // TODO: Open Orangopus project form pre-filled with repo data
+      alert(`Importing ${repo.name} as a project!`);
+    },
   }
 });
 </script>

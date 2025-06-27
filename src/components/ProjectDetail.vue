@@ -44,7 +44,7 @@
           <p class="project-description">{{ project.description }}</p>
           
           <div class="project-author">
-            <img :src="project.user_avatar || '/default-avatar.jpg'" :alt="project.user_name" />
+            <img :src="authorAvatarUrl" :alt="project.user_name" @error="onAvatarError" />
             <div class="author-info">
               <span class="author-name">{{ project.user_name || 'Anonymous' }}</span>
               <span class="project-date">{{ formatDate(project.created_at) }}</span>
@@ -135,7 +135,8 @@ export default defineComponent({
       project: null as Project | null,
       loading: true,
       error: '',
-      isLiked: false
+      isLiked: false,
+      fallbackAvatar: ''
     }
   },
   mounted() {
@@ -234,6 +235,14 @@ export default defineComponent({
       } catch (error) {
         return 'Invalid date'
       }
+    },
+    onAvatarError() {
+      this.fallbackAvatar = '/default-avatar.svg';
+    }
+  },
+  computed: {
+    authorAvatarUrl() {
+      return this.fallbackAvatar || this.project?.user_avatar || '/default-avatar.svg';
     }
   }
 })

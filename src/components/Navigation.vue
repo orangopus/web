@@ -121,6 +121,7 @@ interface NavLink {
 
 export default defineComponent({
   name: "Navigation",
+  emits: ['navigate-to-dashboard', 'navigate-to-profile', 'navigate-to-projects', 'show-auth'],
   data() {
     return {
       isScrolled: false,
@@ -208,17 +209,17 @@ export default defineComponent({
     
     navigateToDashboard() {
       this.showUserMenu = false;
-      this.$router.push('/dashboard');
+      this.$emit('navigate-to-dashboard');
     },
     
     navigateToProfile() {
       this.showUserMenu = false;
-      this.$router.push('/profile');
+      this.$emit('navigate-to-profile');
     },
     
     navigateToProjects() {
       this.showUserMenu = false;
-      this.$router.push('/#projects');
+      this.$emit('navigate-to-projects');
     },
     
     observeSections() {

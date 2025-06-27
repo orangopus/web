@@ -14,6 +14,7 @@
       <Navigation 
         @navigate-to-dashboard="showDashboard = true" 
         @navigate-to-profile="showProfile = true"
+        @navigate-to-projects="navigateToProjects"
         @show-auth="showAuthPage"
       />
       <Notification ref="notification" />
@@ -283,6 +284,17 @@ export default defineComponent({
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
       }
+    },
+
+    navigateToProjects() {
+      this.showDashboard = false;
+      this.showProfile = false;
+      setTimeout(() => {
+        const projectsSection = document.querySelector('#projects');
+        if (projectsSection) {
+          projectsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
     }
   }
 });

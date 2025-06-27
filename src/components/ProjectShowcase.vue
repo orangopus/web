@@ -75,7 +75,7 @@
             
             <div class="project-meta">
               <div class="project-author">
-                <img :src="project.user_avatar || '/default-avatar.jpg'" :alt="project.user_name" />
+                <img :src="authorAvatarUrl(project)" :alt="project.user_name" @error="event => { project.fallbackAvatarUrl = '/default-avatar.svg' }" />
                 <span>{{ project.user_name || 'Anonymous' }}</span>
               </div>
               <span class="project-date">{{ formatDate(project.created_at || '') }}</span>
@@ -179,6 +179,9 @@ export default defineComponent({
         return this.projects;
       }
       return this.projects.filter(project => project.category === this.activeFilter);
+    },
+    authorAvatarUrl() {
+      return (project) => project.fallbackAvatarUrl || project.user_avatar || '/default-avatar.svg';
     }
   },
   mounted() {

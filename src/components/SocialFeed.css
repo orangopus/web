@@ -1,0 +1,269 @@
+/* Community Stats */
+.community-stats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 40px;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s ease 0.3s;
+}
+
+.community-stats.animate-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-number {
+  color: #ff5500;
+  font-family: "Manrope", Helvetica;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-family: "Manrope", Helvetica;
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Post Type Selector */
+.post-type-selector {
+  margin-bottom: 20px;
+}
+
+.post-type-selector label {
+  display: block;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: "Manrope", Helvetica;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.type-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.type-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 8px 16px;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: "Manrope", Helvetica;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.type-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.type-btn.active {
+  background: rgba(255, 85, 0, 0.2);
+  border-color: rgba(255, 85, 0, 0.4);
+  color: #ff5500;
+}
+
+/* GitHub Repository Selector */
+.github-repo-selector {
+  margin-bottom: 20px;
+}
+
+.github-repo-selector label {
+  display: block;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: "Manrope", Helvetica;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.repo-select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #ffffff;
+  font-family: "Manrope", Helvetica;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.repo-select:focus {
+  outline: none;
+  border-color: rgba(255, 85, 0, 0.5);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.repo-select option {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+/* Post Type Badge */
+.post-type {
+  background: rgba(255, 85, 0, 0.2);
+  color: #ff5500;
+  font-family: "Manrope", Helvetica;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 10px;
+}
+
+/* Liked State */
+.action-btn.liked {
+  background: rgba(255, 85, 0, 0.2);
+  border-color: rgba(255, 85, 0, 0.4);
+}
+
+.action-btn.liked .action-icon {
+  color: #ff5500;
+}
+
+/* Repository Topics */
+.repo-topics {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.topic-tag {
+  background: rgba(255, 85, 0, 0.1);
+  color: #ff5500;
+  font-family: "Manrope", Helvetica;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 85, 0, 0.2);
+}
+
+/* Clickable Tags */
+.tag {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tag:hover {
+  background: rgba(255, 85, 0, 0.2);
+  border-color: rgba(255, 85, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Loading States */
+.loading-more {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Light Theme Styles */
+.light-theme .stat-number {
+  color: #ff5500;
+}
+
+.light-theme .stat-label {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .type-btn {
+  background: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.light-theme .type-btn:hover {
+  background: rgba(0, 0, 0, 0.15);
+  color: #212529;
+}
+
+.light-theme .type-btn.active {
+  background: #ff5500;
+  color: #ffffff;
+  border-color: #ff5500;
+}
+
+.light-theme .repo-select {
+  background: rgba(255, 255, 255, 0.8);
+  color: #212529;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.light-theme .repo-select:focus {
+  background: rgba(255, 255, 255, 1);
+  border-color: #ff5500;
+}
+
+.light-theme .repo-select option {
+  background: #ffffff;
+  color: #212529;
+}
+
+.light-theme .post-type {
+  background: #ff5500;
+  color: #ffffff;
+}
+
+.light-theme .topic-tag {
+  background: rgba(255, 85, 0, 0.1);
+  color: #ff5500;
+  border: 1px solid rgba(255, 85, 0, 0.2);
+}
+
+.light-theme .tag:hover {
+  background: rgba(255, 85, 0, 0.2);
+  border-color: rgba(255, 85, 0, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .community-stats {
+    gap: 20px;
+  }
+  
+  .stat-number {
+    font-size: 24px;
+  }
+  
+  .type-options {
+    gap: 8px;
+  }
+  
+  .type-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+  
+  .repo-topics {
+    gap: 4px;
+  }
+  
+  .topic-tag {
+    font-size: 9px;
+    padding: 3px 6px;
+  }
+} 

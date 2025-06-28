@@ -254,4 +254,70 @@ html {
     font-size: 14px;
   }
 }
+
+/* Light theme styles */
+.light-theme {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+  color: #212529;
+}
+
+.light-theme body {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+  color: #212529;
+}
+
+.light-theme .btn-secondary {
+  background: rgba(0, 0, 0, 0.1);
+  color: #212529;
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.light-theme .btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.light-theme .form-group label {
+  color: #212529;
+}
+
+.light-theme .form-group input,
+.light-theme .form-group textarea,
+.light-theme .form-group select {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.8);
+  color: #212529;
+}
+
+.light-theme .form-group input:focus,
+.light-theme .form-group textarea:focus,
+.light-theme .form-group select:focus {
+  background: rgba(255, 255, 255, 1);
+  border-color: #ff5500;
+}
+
+.light-theme .form-group input::placeholder,
+.light-theme .form-group textarea::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.light-theme .modal {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .loading-spinner {
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top: 3px solid #ff5500;
+}
+
+.light-theme ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.light-theme ::selection {
+  background: rgba(255, 85, 0, 0.2);
+  color: #212529;
+}
 </style> 

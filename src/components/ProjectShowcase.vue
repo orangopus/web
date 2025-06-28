@@ -784,4 +784,142 @@ export default defineComponent({
     flex-direction: column;
   }
 }
+
+/* Light theme styles */
+.light-theme .project-showcase {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+  color: #212529;
+}
+
+.light-theme .section-title {
+  color: #212529;
+}
+
+.light-theme .section-description {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .project-creation {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .creation-header h3 {
+  color: #212529;
+}
+
+.light-theme .creation-header p {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .create-project-btn {
+  background: #ff5500;
+  color: #ffffff;
+  border-color: #ff5500;
+}
+
+.light-theme .create-project-btn:hover {
+  background: #e64a00;
+  border-color: #e64a00;
+}
+
+.light-theme .filter-btn {
+  background: rgba(255, 255, 255, 0.8);
+  color: #212529;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .filter-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 85, 0, 0.3);
+}
+
+.light-theme .filter-btn.active {
+  background: #ff5500;
+  color: #ffffff;
+  border-color: #ff5500;
+}
+
+.light-theme .project-card {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .project-card:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 85, 0, 0.3);
+  box-shadow: 0 8px 30px rgba(255, 85, 0, 0.2);
+}
+
+.light-theme .project-title {
+  color: #212529;
+}
+
+.light-theme .project-category {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .project-description {
+  color: #212529;
+}
+
+.light-theme .project-author span {
+  color: #212529;
+}
+
+.light-theme .project-date {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.light-theme .tech-tag {
+  background: rgba(255, 85, 0, 0.1);
+  color: #ff5500;
+  border: 1px solid rgba(255, 85, 0, 0.2);
+}
+
+.light-theme .project-link {
+  background: rgba(255, 255, 255, 0.8);
+  color: #212529;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .project-link:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 85, 0, 0.3);
+}
+
+.light-theme .github-link {
+  background: #ff5500;
+  color: #ffffff;
+  border-color: #ff5500;
+}
+
+.light-theme .github-link:hover {
+  background: #e64a00;
+  border-color: #e64a00;
+}
+
+.light-theme .live-link {
+  background: #28a745;
+  color: #ffffff;
+  border-color: #28a745;
+}
+
+.light-theme .live-link:hover {
+  background: #218838;
+  border-color: #218838;
+}
+
+.light-theme .load-more-btn {
+  background: rgba(255, 255, 255, 0.8);
+  color: #212529;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .load-more-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 85, 0, 0.3);
+}
 </style>

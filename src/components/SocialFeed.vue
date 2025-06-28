@@ -9,6 +9,22 @@
         Share your projects, discover amazing creations, and connect with fellow developers.
       </p>
       
+      <!-- Community Stats -->
+      <div class="community-stats animate-on-scroll">
+        <div class="stat-item">
+          <span class="stat-number">{{ stats.total_posts || 0 }}</span>
+          <span class="stat-label">Posts</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ stats.total_likes || 0 }}</span>
+          <span class="stat-label">Likes</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ stats.total_comments || 0 }}</span>
+          <span class="stat-label">Comments</span>
+        </div>
+      </div>
+      
       <!-- Post Creation Form -->
       <div class="post-form animate-on-scroll">
         <div class="form-header">
@@ -29,6 +45,38 @@
             class="post-textarea"
             rows="4"
           ></textarea>
+          
+          <!-- Post Type Selection -->
+          <div class="post-type-selector">
+            <label>Post Type:</label>
+            <div class="type-options">
+              <button 
+                v-for="type in postTypes" 
+                :key="type.value"
+                @click="newPost.post_type = type.value"
+                class="type-btn"
+                :class="{ 'active': newPost.post_type === type.value }"
+              >
+                {{ type.label }}
+              </button>
+            </div>
+          </div>
+          
+          <!-- GitHub Repository Selection -->
+          <div v-if="isGitHubConnected && userRepositories.length > 0" class="github-repo-selector">
+            <label>Link GitHub Repository (Optional):</label>
+            <select v-model="selectedRepoId" class="repo-select">
+              <option value="">No repository</option>
+              <option 
+                v-for="repo in userRepositories" 
+                :key="repo.name"
+                :value="repo.name"
+              >
+                {{ repo.name }} ({{ repo.language }})
+              </option>
+            </select>
+          </div>
+          
           <div class="form-actions">
             <div class="github-integration">
               <button 
@@ -45,9 +93,10 @@
             <button 
               @click="createPost" 
               class="post-btn"
-              :disabled="!newPost.content.trim()"
+              :disabled="!newPost.content.trim() || creating"
             >
-              <span>Share Project</span>
+              <span v-if="!creating">Share Project</span>
+              <span v-else>Creating...</span>
               <div class="btn-glow"></div>
             </button>
           </div>
@@ -81,15 +130,16 @@
           class="post-card animate-on-scroll"
         >
           <div class="post-header">
-            <img :src="post.userAvatar" :alt="post.userName" class="post-avatar" />
+            <img :src="post.user_avatar" :alt="post.user_name" class="post-avatar" />
             <div class="post-meta">
-              <h4 class="post-author">{{ post.userName }}</h4>
-              <span class="post-time">{{ formatTime(post.createdAt) }}</span>
+              <h4 class="post-author">{{ post.user_name }}</h4>
+              <span class="post-time">{{ formatTime(post.created_at) }}</span>
+              <span class="post-type">{{ getPostTypeLabel(post.post_type) }}</span>
             </div>
             <div class="post-actions">
-              <button @click="likePost(post.id)" class="action-btn">
+              <button @click="likePost(post.id)" class="action-btn" :class="{ 'liked': post.is_liked }">
                 <span class="action-icon">❤️</span>
-                <span class="action-count">{{ post.likes }}</span>
+                <span class="action-count">{{ post.likes_count }}</span>
               </button>
               <button @click="sharePost(post.id)" class="action-btn">
                 <span class="action-icon">📤</span>
@@ -101,18 +151,27 @@
             <p class="post-text">{{ post.content }}</p>
             
             <!-- GitHub Repository Link -->
-            <div v-if="post.githubRepo" class="github-repo">
+            <div v-if="post.github_repo" class="github-repo">
               <div class="repo-info">
-                <h5>{{ post.githubRepo.name }}</h5>
-                <p>{{ post.githubRepo.description }}</p>
+                <h5>{{ post.github_repo.name }}</h5>
+                <p>{{ post.github_repo.description }}</p>
                 <div class="repo-stats">
-                  <span>⭐ {{ post.githubRepo.stars }}</span>
-                  <span>🔄 {{ post.githubRepo.forks }}</span>
-                  <span class="repo-language">{{ post.githubRepo.language }}</span>
+                  <span>⭐ {{ post.github_repo.stars }}</span>
+                  <span>🔄 {{ post.github_repo.forks }}</span>
+                  <span class="repo-language">{{ post.github_repo.language }}</span>
+                </div>
+                <div v-if="post.github_repo.topics && post.github_repo.topics.length" class="repo-topics">
+                  <span 
+                    v-for="topic in post.github_repo.topics.slice(0, 3)" 
+                    :key="topic" 
+                    class="topic-tag"
+                  >
+                    {{ topic }}
+                  </span>
                 </div>
               </div>
               <a 
-                :href="post.githubRepo.url" 
+                :href="post.github_repo.url" 
                 target="_blank" 
                 class="repo-link"
               >
@@ -126,6 +185,7 @@
                 v-for="tag in post.tags" 
                 :key="tag" 
                 class="tag"
+                @click="filterByTag(tag)"
               >
                 #{{ tag }}
               </span>
@@ -136,8 +196,9 @@
 
       <!-- Load More Button -->
       <div v-if="hasMorePosts" class="load-more">
-        <button @click="loadMorePosts" class="load-more-btn">
-          Load More Posts
+        <button @click="loadMorePosts" class="load-more-btn" :disabled="loadingMore">
+          <span v-if="!loadingMore">Load More Posts</span>
+          <span v-else>Loading...</span>
         </button>
       </div>
     </div>
@@ -146,31 +207,18 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import { communityService, type CommunityPost, type GitHubRepo, type CreatePostData } from "@/services/communityService";
 import { supabase } from "@/lib/supabase";
-
-interface GitHubRepo {
-  name: string;
-  description: string;
-  url: string;
-  stars: number;
-  forks: number;
-  language: string;
-}
-
-interface Post {
-  id: string;
-  userName: string;
-  userAvatar: string;
-  content: string;
-  createdAt: Date;
-  likes: number;
-  tags: string[];
-  githubRepo?: GitHubRepo;
-}
+import "./SocialFeed.css";
 
 interface Filter {
   id: string;
   name: string;
+}
+
+interface PostType {
+  value: string;
+  label: string;
 }
 
 export default defineComponent({
@@ -178,72 +226,84 @@ export default defineComponent({
   data() {
     return {
       loading: false,
+      loadingMore: false,
+      creating: false,
       isGitHubConnected: false,
       userName: "",
       userAvatar: "",
       userRepositories: [] as GitHubRepo[],
-      newPost: {
-        content: "",
-        tags: [] as string[],
-        githubRepo: null as GitHubRepo | null
-      },
-      posts: [] as Post[],
+      selectedRepoId: "",
+              newPost: {
+          content: "",
+          post_type: "showcase" as CreatePostData['post_type'],
+          tags: [] as string[],
+          github_repo: null as GitHubRepo | null
+        },
+      posts: [] as CommunityPost[],
       activeFilter: "all",
       page: 1,
       hasMorePosts: true,
+      stats: {
+        total_posts: 0,
+        total_likes: 0,
+        total_comments: 0
+      },
       filters: [
         { id: "all", name: "All Posts" },
-        { id: "projects", name: "Projects" },
-        { id: "questions", name: "Questions" },
-        { id: "showcase", name: "Showcase" }
+        { id: "showcase", name: "Showcase" },
+        { id: "question", name: "Questions" },
+        { id: "discussion", name: "Discussions" }
+      ],
+      postTypes: [
+        { value: "showcase", label: "Showcase" },
+        { value: "question", label: "Question" },
+        { value: "discussion", label: "Discussion" }
       ]
     };
   },
   computed: {
-    filteredPosts(): Post[] {
+    filteredPosts(): CommunityPost[] {
       if (this.activeFilter === "all") {
         return this.posts;
       }
-      return this.posts.filter(post => 
-        post.tags && post.tags.includes(this.activeFilter)
-      );
+      return this.posts.filter(post => post.post_type === this.activeFilter);
     }
   },
-  mounted() {
-    this.loadPosts();
-    this.checkGitHubConnection();
+  async mounted() {
+    await this.loadPosts();
+    await this.loadStats();
+    await this.checkGitHubConnection();
   },
   methods: {
     async connectGitHub() {
       if (this.isGitHubConnected) return;
       
-      // Simulate GitHub OAuth flow
       this.loading = true;
-      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      this.isGitHubConnected = true;
-      this.userName = "Cheesecastv20053";
-      this.userAvatar = "https://c.animaapp.com/bX3QfjDJ/img/logo.svg";
-      this.loading = false;
-      
-      // Load user's repositories
-      this.loadUserRepositories();
+      try {
+        // For MVP, we'll use a demo GitHub connection
+        // In production, this would use GitHub OAuth
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        this.isGitHubConnected = true;
+        this.userName = "Cheesecastv20053";
+        this.userAvatar = "https://c.animaapp.com/bX3QfjDJ/img/logo.svg";
+        
+        // Load user's repositories
+        await this.loadUserRepositories();
+      } catch (error) {
+        console.error('Error connecting to GitHub:', error);
+      } finally {
+        this.loading = false;
+      }
     },
     
     async loadUserRepositories() {
       try {
-        const response = await fetch('https://api.github.com/users/orangopus/repos?sort=updated&per_page=5');
-        const repos = await response.json();
-        
-        // Store repos for post creation
-        this.userRepositories = repos.map((repo: any) => ({
-          name: repo.name,
-          description: repo.description || "No description",
-          url: repo.html_url,
-          stars: repo.stargazers_count,
-          forks: repo.forks_count,
-          language: repo.language || "Unknown"
-        }));
+        const result = await communityService.getGitHubRepos('orangopus');
+        if (result.success && result.repos) {
+          this.userRepositories = result.repos;
+        }
       } catch (error) {
         console.error('Error loading repositories:', error);
       }
@@ -252,64 +312,66 @@ export default defineComponent({
     async createPost() {
       if (!this.newPost.content.trim()) return;
       
-      this.loading = true;
+      this.creating = true;
       
       try {
+        // Extract tags from content
+        const tags = this.extractTags(this.newPost.content);
+        
+        // Get selected GitHub repo
+        let githubRepo = null;
+        if (this.selectedRepoId && this.userRepositories.length > 0) {
+          githubRepo = this.userRepositories.find(repo => repo.name === this.selectedRepoId) || null;
+        }
+        
         const postData = {
-          user_name: this.userName,
-          user_avatar: this.userAvatar,
           content: this.newPost.content,
-          likes: 0,
-          tags: this.extractTags(this.newPost.content),
-          github_repo: this.newPost.githubRepo
+          post_type: this.newPost.post_type,
+          tags,
+          github_repo: githubRepo || undefined
         };
 
-        const { data, error } = await supabase
-          .from('posts')
-          .insert([postData])
-          .select()
-          .single();
+        const result = await communityService.createPost(postData);
 
-        if (error) {
-          console.error('Error creating post:', error);
-          // Fallback to local storage if Supabase fails
-          this.createLocalPost();
-        } else {
+        if (result.success && result.post) {
           // Add the new post to the local state
-          const newPost: Post = {
-            id: data.id,
-            userName: data.user_name,
-            userAvatar: data.user_avatar,
-            content: data.content,
-            createdAt: new Date(data.created_at),
-            likes: data.likes,
-            tags: data.tags || [],
-            githubRepo: data.github_repo || undefined
-          };
+          this.posts.unshift(result.post);
           
-          this.posts.unshift(newPost);
+          // Clear form
+          this.newPost.content = "";
+          this.newPost.post_type = "showcase";
+          this.selectedRepoId = "";
+          
+          // Refresh stats
+          await this.loadStats();
+        } else {
+          console.error('Error creating post:', result.error);
+          // Show error to user
+          alert('Failed to create post. Please try again.');
         }
       } catch (error) {
         console.error('Error creating post:', error);
-        // Fallback to local storage
-        this.createLocalPost();
+        // Show error to user
+        alert('Failed to create post. Please try again.');
       } finally {
-        this.loading = false;
-        this.newPost.content = "";
-        this.newPost.githubRepo = null;
+        this.creating = false;
       }
     },
 
     createLocalPost() {
-      const post: Post = {
+      const post: CommunityPost = {
         id: Date.now().toString(),
-        userName: this.userName,
-        userAvatar: this.userAvatar,
+        user_id: "local-user",
+        user_name: this.userName,
+        user_avatar: this.userAvatar,
         content: this.newPost.content,
-        createdAt: new Date(),
-        likes: 0,
+        post_type: this.newPost.post_type,
         tags: this.extractTags(this.newPost.content),
-        githubRepo: this.newPost.githubRepo || undefined
+        likes_count: 0,
+        comments_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        github_repo: this.newPost.github_repo || undefined
       };
       
       this.posts.unshift(post);
@@ -325,120 +387,100 @@ export default defineComponent({
       this.loading = true;
       
       try {
-        const { data, error } = await supabase
-          .from('posts')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(10);
+        const result = await communityService.getPosts({
+          limit: 10,
+          offset: (this.page - 1) * 10
+        });
 
-        if (error) {
-          console.error('Error loading posts:', error);
-          // Fallback to mock data
-          this.loadMockPosts();
+        if (result.success && result.posts) {
+          if (this.page === 1) {
+            this.posts = result.posts;
+          } else {
+            this.posts.push(...result.posts);
+          }
+          
+          this.hasMorePosts = result.posts.length === 10;
         } else {
-          this.posts = data.map((post: any) => ({
-            id: post.id,
-            userName: post.user_name,
-            userAvatar: post.user_avatar,
-            content: post.content,
-            createdAt: new Date(post.created_at),
-            likes: post.likes,
-            tags: post.tags || [],
-            githubRepo: post.github_repo || undefined
-          }));
+          console.error('Error loading posts:', result.error);
+          this.posts = [];
         }
       } catch (error) {
         console.error('Error loading posts:', error);
-        // Fallback to mock data
-        this.loadMockPosts();
+        this.posts = [];
       } finally {
         this.loading = false;
       }
     },
 
-    loadMockPosts() {
-      // Mock data as fallback
-      this.posts = [
-        {
-          id: "1",
-          userName: "Ellie@orangopus",
-          userAvatar: "https://c.animaapp.com/bX3QfjDJ/img/logo-1.svg",
-          content: "Just finished working on a new Vue.js component library! 🎉 It's designed to make building beautiful UIs easier than ever. Check it out and let me know what you think! #vue #components #ui",
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          likes: 15,
-          tags: ["vue", "components", "ui"],
-          githubRepo: {
-            name: "vue-component-library",
-            description: "A beautiful Vue.js component library for modern web applications",
-            url: "https://github.com/orangopus/vue-component-library",
-            stars: 23,
-            forks: 8,
-            language: "Vue"
-          }
-        },
-        {
-          id: "2",
-          userName: "Jordan@orangopus",
-          userAvatar: "https://c.animaapp.com/bX3QfjDJ/img/logo-2.svg",
-          content: "Question for the community: What's your favorite way to handle state management in large Vue applications? I'm working on a new project and would love to hear your experiences! #vue #state-management #discussion",
-          createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
-          likes: 8,
-          tags: ["vue", "state-management", "discussion"]
-        },
-        {
-          id: "3",
-          userName: "Rim@orangopus",
-          userAvatar: "https://c.animaapp.com/bX3QfjDJ/img/logo.svg",
-          content: "Showcasing my latest project: A real-time collaboration tool built with WebSockets and Vue 3! Features include live editing, user presence, and conflict resolution. #showcase #websockets #collaboration",
-          createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
-          likes: 32,
-          tags: ["showcase", "websockets", "collaboration"],
-          githubRepo: {
-            name: "real-time-collab",
-            description: "Real-time collaboration tool with WebSocket support",
-            url: "https://github.com/orangopus/real-time-collab",
-            stars: 45,
-            forks: 12,
-            language: "JavaScript"
-          }
+    async loadStats() {
+      try {
+        const result = await communityService.getPostStats();
+        if (result.success && result.stats) {
+          this.stats = result.stats;
         }
-      ];
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    },
+
+    loadMockPosts() {
+      // This method is no longer needed as we're using real data
+      this.posts = [];
     },
     
     async loadMorePosts() {
+      this.loadingMore = true;
       this.page++;
-      // Simulate loading more posts
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      this.hasMorePosts = false;
+      
+      try {
+        await this.loadPosts();
+      } finally {
+        this.loadingMore = false;
+      }
     },
     
     setActiveFilter(filterId: string) {
       this.activeFilter = filterId;
     },
     
+    filterByTag(tag: string) {
+      // For now, just highlight the tag
+      // In a full implementation, this would filter posts
+      console.log('Filtering by tag:', tag);
+    },
+    
     async likePost(postId: string) {
-      const post = this.posts.find(p => p.id === postId);
-      if (post) {
-        post.likes++;
+      try {
+        const result = await communityService.likePost(postId);
         
-        // Update in Supabase
-        try {
-          await supabase
-            .from('posts')
-            .update({ likes: post.likes })
-            .eq('id', postId);
-        } catch (error) {
-          console.error('Error updating likes:', error);
+        if (result.success) {
+          // Update local state
+          const post = this.posts.find(p => p.id === postId);
+          if (post) {
+            post.is_liked = !post.is_liked;
+            post.likes_count += post.is_liked ? 1 : -1;
+          }
+        } else {
+          console.error('Error liking post:', result.error);
         }
+      } catch (error) {
+        console.error('Error liking post:', error);
       }
     },
     
     sharePost(postId: string) {
       // Implement share functionality
-      console.log('Sharing post:', postId);
+      const post = this.posts.find(p => p.id === postId);
+      if (post) {
+        const url = `${window.location.origin}/community/post/${postId}`;
+        navigator.clipboard.writeText(url);
+        // Show notification
+        console.log('Post URL copied to clipboard');
+      }
     },
     
-    formatTime(date: Date): string {
+    formatTime(dateString: string): string {
+      const date = new Date(dateString);
       const now = new Date();
       const diff = now.getTime() - date.getTime();
       const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -453,7 +495,12 @@ export default defineComponent({
       }
     },
     
-    checkGitHubConnection() {
+    getPostTypeLabel(type: string): string {
+      const postType = this.postTypes.find(t => t.value === type);
+      return postType ? postType.label : type;
+    },
+    
+    async checkGitHubConnection() {
       // Check if user is already connected to GitHub
       // This would typically check localStorage or a backend session
       this.isGitHubConnected = false;
@@ -995,5 +1042,165 @@ export default defineComponent({
   .action-btn {
     padding: 6px 10px;
   }
+}
+
+/* Light theme styles */
+.light-theme .social-feed {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+  color: #212529;
+}
+
+.light-theme .section-title {
+  color: #212529;
+}
+
+.light-theme .section-description {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .post-form {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .form-info h3 {
+  color: #212529;
+}
+
+.light-theme .form-info p {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .post-textarea {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: #212529;
+}
+
+.light-theme .post-textarea:focus {
+  background: rgba(255, 255, 255, 1);
+  border-color: #ff5500;
+}
+
+.light-theme .post-textarea::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.light-theme .github-btn {
+  background: rgba(0, 0, 0, 0.1);
+  color: #212529;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.light-theme .github-btn:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.light-theme .github-btn.connected {
+  background: #ff5500;
+  color: #ffffff;
+  border-color: #ff5500;
+}
+
+.light-theme .post-btn {
+  background: #ff5500;
+  color: #ffffff;
+  border-color: #ff5500;
+}
+
+.light-theme .post-btn:hover {
+  background: #e64a00;
+  border-color: #e64a00;
+}
+
+.light-theme .filter-btn {
+  background: rgba(255, 255, 255, 0.8);
+  color: #212529;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .filter-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 85, 0, 0.3);
+}
+
+.light-theme .filter-btn.active {
+  background: #ff5500;
+  color: #ffffff;
+  border-color: #ff5500;
+}
+
+.light-theme .post-card {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .post-card:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 85, 0, 0.3);
+  box-shadow: 0 8px 30px rgba(255, 85, 0, 0.2);
+}
+
+.light-theme .post-author {
+  color: #212529;
+}
+
+.light-theme .post-time {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.light-theme .post-text {
+  color: #212529;
+}
+
+.light-theme .github-repo {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .github-repo h5 {
+  color: #212529;
+}
+
+.light-theme .github-repo p {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .repo-stats span {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .repo-language {
+  color: #ff5500;
+}
+
+.light-theme .repo-link {
+  background: #ff5500;
+  color: #ffffff;
+  border-color: #ff5500;
+}
+
+.light-theme .repo-link:hover {
+  background: #e64a00;
+  border-color: #e64a00;
+}
+
+.light-theme .tag {
+  background: rgba(255, 85, 0, 0.1);
+  color: #ff5500;
+  border: 1px solid rgba(255, 85, 0, 0.2);
+}
+
+.light-theme .load-more-btn {
+  background: rgba(255, 255, 255, 0.8);
+  color: #212529;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .load-more-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 85, 0, 0.3);
 }
 </style> 

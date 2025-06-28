@@ -609,12 +609,13 @@ export default defineComponent({
 
 /* Light theme styles */
 .light-theme .navigation {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.9);
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(20px);
 }
 
 .light-theme .navigation.scrolled {
-  background: rgba(255, 255, 255, 0.93);
+  background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
@@ -623,7 +624,7 @@ export default defineComponent({
 }
 
 .light-theme .nav-link:hover {
-  color: #000000;
+  color: #212529;
 }
 
 .light-theme .nav-link.active {
@@ -633,11 +634,74 @@ export default defineComponent({
 .light-theme .theme-toggle {
   background: rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(0, 0, 0, 0.2);
-  color: #000000;
+  color: #212529;
 }
 
 .light-theme .theme-toggle:hover {
   background: rgba(0, 0, 0, 0.2);
   border-color: rgba(0, 0, 0, 0.3);
+}
+
+.light-theme .auth-button {
+  color: #212529;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.light-theme .auth-button.login {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.light-theme .auth-button.login:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .auth-button.signup {
+  background: #ff5500;
+  color: #ffffff;
+  border-color: #ff5500;
+}
+
+.light-theme .auth-button.signup:hover {
+  background: #e64a00;
+  border-color: #e64a00;
+}
+
+.light-theme .user-menu {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(20px);
+}
+
+.light-theme .user-info h4 {
+  color: #212529;
+}
+
+.light-theme .user-info p {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .menu-item {
+  color: #212529;
+}
+
+.light-theme .menu-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.light-theme .menu-item.signout {
+  color: #dc3545;
+}
+
+.light-theme .menu-item.signout:hover {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.light-theme .menu-divider {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .nav-logo {
+  filter: drop-shadow(0 0 0 #ff5500) brightness(0) saturate(100%) invert(54%) sepia(97%) saturate(7492%) hue-rotate(1deg) brightness(101%) contrast(104%) !important;
 }
 </style> 

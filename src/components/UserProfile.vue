@@ -23,7 +23,6 @@
       
       <div class="profile-info">
         <h2>{{ user?.name || 'User' }}</h2>
-        <p class="user-email">{{ user?.email }}</p>
         <p class="member-since">Member since {{ formatDate(user?.created_at) }}</p>
       </div>
     </div>
@@ -660,5 +659,138 @@ input:checked + .slider:before {
   .modal-actions {
     flex-direction: column;
   }
+}
+
+/* Light theme styles */
+.light-theme .user-profile {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+  color: #212529;
+}
+
+.light-theme .profile-header h2 {
+  color: #212529;
+}
+
+.light-theme .user-email {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .member-since {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.light-theme .section h3 {
+  color: #212529;
+}
+
+.light-theme .profile-form input,
+.light-theme .profile-form textarea {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: #212529;
+}
+
+.light-theme .profile-form input:focus,
+.light-theme .profile-form textarea:focus {
+  background: rgba(255, 255, 255, 1);
+  border-color: #ff5500;
+}
+
+.light-theme .profile-form input::placeholder,
+.light-theme .profile-form textarea::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.light-theme .save-button {
+  background: #ff5500;
+  color: #ffffff;
+  border-color: #ff5500;
+}
+
+.light-theme .save-button:hover {
+  background: #e64a00;
+  border-color: #e64a00;
+}
+
+.light-theme .setting-item {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .setting-item:last-child {
+  border-bottom: none;
+}
+
+.light-theme .setting-info h4 {
+  color: #212529;
+}
+
+.light-theme .setting-info p {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .slider {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.light-theme .slider:before {
+  background-color: #ffffff;
+}
+
+.light-theme input:checked + .slider {
+  background-color: #ff5500;
+}
+
+.light-theme .danger-info h4 {
+  color: #dc3545;
+}
+
+.light-theme .danger-info p {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .danger-button {
+  background: #dc3545;
+  color: #ffffff;
+  border-color: #dc3545;
+}
+
+.light-theme .danger-button:hover {
+  background: #c82333;
+  border-color: #c82333;
+}
+
+.light-theme .modal {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .modal h3 {
+  color: #212529;
+}
+
+.light-theme .modal p {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .cancel-button {
+  background: rgba(0, 0, 0, 0.1);
+  color: #212529;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.light-theme .cancel-button:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.light-theme .delete-button {
+  background: #dc3545;
+  color: #ffffff;
+  border-color: #dc3545;
+}
+
+.light-theme .delete-button:hover {
+  background: #c82333;
+  border-color: #c82333;
 }
 </style> 

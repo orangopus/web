@@ -1155,4 +1155,160 @@ export default defineComponent({
 .github-modal .modal-body {
   padding: 0;
 }
+
+/* Light theme styles */
+.light-theme .dashboard {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+  color: #212529;
+}
+
+.light-theme .dashboard-header h1 {
+  color: #212529;
+}
+
+.light-theme .dashboard-header p {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .stat-card {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .stat-card:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 85, 0, 0.3);
+  box-shadow: 0 8px 30px rgba(255, 85, 0, 0.2);
+}
+
+.light-theme .stat-number {
+  color: #212529;
+}
+
+.light-theme .stat-label {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .quick-actions h2 {
+  color: #212529;
+}
+
+.light-theme .action-card {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .action-card:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 85, 0, 0.3);
+  box-shadow: 0 8px 30px rgba(255, 85, 0, 0.2);
+}
+
+.light-theme .action-card h3 {
+  color: #212529;
+}
+
+.light-theme .action-card p {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .section-header h2 {
+  color: #212529;
+}
+
+.light-theme .view-all-button {
+  background: rgba(255, 255, 255, 0.8);
+  color: #212529;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .view-all-button:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 85, 0, 0.3);
+}
+
+.light-theme .project-card {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .project-card:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 85, 0, 0.3);
+  box-shadow: 0 8px 30px rgba(255, 85, 0, 0.2);
+}
+
+.light-theme .project-info h3 {
+  color: #212529;
+}
+
+.light-theme .project-info p {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .project-category {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .tech-tag {
+  background: rgba(255, 85, 0, 0.1);
+  color: #ff5500;
+  border: 1px solid rgba(255, 85, 0, 0.2);
+}
+
+.light-theme .activity-feed h2 {
+  color: #212529;
+}
+
+.light-theme .activity-item {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .activity-content p {
+  color: #212529;
+}
+
+.light-theme .activity-time {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.light-theme .empty-state {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .create-button,
+.light-theme .import-button {
+  background: rgba(255, 255, 255, 0.8);
+  color: #212529;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .create-button:hover,
+.light-theme .import-button:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 85, 0, 0.3);
+}
+
+.light-theme .modal {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .modal-header h3 {
+  color: #212529;
+}
+
+.light-theme .close-btn {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme .close-btn:hover {
+  color: #212529;
+  background: rgba(0, 0, 0, 0.1);
+}
 </style> 

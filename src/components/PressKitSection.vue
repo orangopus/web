@@ -4,7 +4,7 @@
     <div class="press-kit-content">
       <h2 class="section-title animate-on-scroll">PressKite</h2>
       <p class="section-description">
-        Everything you need to write about Orangopus. For all press inquiries, please contact us at <a href="mailto:press@orangopus.net" class="press-email">press@orangopus.net</a>.
+        Everything you need to write about Orangopus. For all press inquiries, please contact us at <a href="mailto:press@orangopus.org" class="press-email">press@orangopus.org</a>.
       </p>
 
       <div class="kit-grid">

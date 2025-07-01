@@ -2,6 +2,11 @@
 
 A modern, beautiful Vue.js website showcasing the Orangopus community with GitHub integration, social features, and project collaboration tools.
 
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-blue?style=for-the-badge&logo=github)](https://github.com/orangopus/web.git)
+
+## 📍 Repository
+**GitHub**: https://github.com/orangopus/web.git
+
 ## ✨ Features
 
 ### 🌟 Core Features
@@ -58,8 +63,8 @@ A modern, beautiful Vue.js website showcasing the Orangopus community with GitHu
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/orangopus-website.git
-   cd orangopus-website
+   git clone https://github.com/orangopus/web.git
+   cd web
    ```
 
 2. **Install dependencies**
@@ -210,7 +215,7 @@ The project is configured for GitHub Pages deployment:
 2. **Push to GitHub**
    ```bash
    git add .
-   git commit -m "Deploy to GitHub Pages"
+   git commit -m "Deploy to Cursor or Vercel"
    git push origin main
    ```
 
@@ -247,7 +252,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-- **Website**: [orangopus.com](https://orangopus.org)
+- **Website**: [orangopus.org](https://orangopus.org)
 - **GitHub**: [@orangopus](https://github.com/orangopus)
 - **Email**: jordan@orangopus.org
 

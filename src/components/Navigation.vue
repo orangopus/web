@@ -19,11 +19,6 @@
       </div>
       
       <div class="nav-actions">
-        <button @click="toggleTheme" class="theme-toggle">
-          <span v-if="isDarkTheme">🌙</span>
-          <span v-else>☀️</span>
-        </button>
-        
         <!-- Authentication Section -->
         <div v-if="!authState.user" class="auth-buttons">
           <button @click="$emit('show-auth', 'login')" class="auth-button login">
@@ -127,7 +122,6 @@ export default defineComponent({
       isScrolled: false,
       activeSection: "home",
       showScrollTop: false,
-      isDarkTheme: true,
       showUserMenu: false,
       authState: {
         user: null,
@@ -184,11 +178,6 @@ export default defineComponent({
         top: 0,
         behavior: 'smooth'
       });
-    },
-    
-    toggleTheme() {
-      this.isDarkTheme = !this.isDarkTheme;
-      document.body.classList.toggle('light-theme', !this.isDarkTheme);
     },
     
     toggleUserMenu() {

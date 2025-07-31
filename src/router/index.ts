@@ -9,6 +9,12 @@ const routes = [
     component: OrangopusWebapp
   },
   {
+    path: '/observatory',
+    name: 'Observatory',
+    component: OrangopusWebapp,
+    props: { initialView: 'observatory' }
+  },
+  {
     path: '/project/:slug',
     name: 'ProjectDetail',
     component: ProjectDetail,
@@ -38,6 +44,22 @@ const router = createRouter({
       return { top: 0 }
     }
   }
+})
+
+// Update page title based on route
+router.beforeEach((to, from, next) => {
+  const titles: { [key: string]: string } = {
+    'Home': 'Orangopus - Simplifying Development',
+    'Observatory': 'News Observatory - Orangopus',
+    'Dashboard': 'Dashboard - Orangopus',
+    'Profile': 'Profile - Orangopus',
+    'ProjectDetail': 'Project Details - Orangopus'
+  }
+  
+  const title = titles[to.name as string] || 'Orangopus - Simplifying Development'
+  document.title = title
+  
+  next()
 })
 
 export default router 

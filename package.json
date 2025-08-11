@@ -4,19 +4,19 @@
   "private": true,
   "scripts": {
     "build": "vue-cli-service build",
-    "start": "serve -s dist -l $PORT",
-    "dev": "vue-cli-service serve"
+    "dev": "vue-cli-service serve",
+    "start": "serve -s dist -l $PORT"
   },
   "dependencies": {
     "serve": "^14.2.1",
     "vue": "2.7.16"
   },
   "devDependencies": {
-    "vue-template-compiler": "2.7.16",
-    "@vue/cli-service": "^5.0.8"
-  }
+    "@vue/cli-service": "^5.0.8",
+    "vue-template-compiler": "2.7.16"
+  },
   "engines": {
     "node": "20.x",
     "npm": "10.x"
-   }
+  }
 }

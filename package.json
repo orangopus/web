@@ -10,7 +10,7 @@
     "start": "serve -s dist -l $PORT"
   },
   "dependencies": {
-    "serve": "^14.2.1"
+    "serve": "^14.2.1",
     "@supabase/supabase-js": "^2.50.0",
     "tslib": "2.6.2",
     "vue-router": "^4.5.1"

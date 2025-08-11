@@ -8,11 +8,14 @@
     "dev": "vue-cli-service serve"
   },
   "dependencies": {
-    "serve": "^14.2.1"
+    "serve": "^14.2.1",
+    "vue": "2.7.16"
   },
   "devDependencies": {
+    "vue-template-compiler": "2.7.16",
     "@vue/cli-service": "^5.0.8"
-  },
+  }
+}
   "engines": {
     "node": "20.x",
     "npm": "10.x"

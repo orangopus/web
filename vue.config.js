@@ -1,16 +1,6 @@
-import { defineConfig } from "@vue/cli-service";
-
-export default defineConfig({
-  transpileDependencies: true,
+// vue.config.js
+module.exports = {
   publicPath: '/',
-  outputDir: 'dist',
-  assetsDir: 'static',
-  productionSourceMap: false,
-  configureWebpack: {
-    optimization: {
-      splitChunks: {
-        chunks: 'all',
-      },
-    },
-  },
-});
+    outputDir: 'dist',
+      transpileDependencies: true,
+      }

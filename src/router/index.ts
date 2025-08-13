@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import OrangopusWebapp from '@/screens/OrangopusWebapp.vue'
 import ProjectDetail from '@/components/ProjectDetail.vue'
+import Globe from '@/components/Globe.vue'
 
 const routes = [
   {
@@ -31,6 +32,11 @@ const routes = [
     name: 'Profile',
     component: OrangopusWebapp,
     props: { initialView: 'profile' }
+  },
+  {
+    path: '/globe',
+    name: 'Globe',
+    component: Globe
   }
 ]
 
@@ -53,7 +59,8 @@ router.beforeEach((to, from, next) => {
     'Observatory': 'News Observatory - Orangopus',
     'Dashboard': 'Dashboard - Orangopus',
     'Profile': 'Profile - Orangopus',
-    'ProjectDetail': 'Project Details - Orangopus'
+    'ProjectDetail': 'Project Details - Orangopus',
+    'Globe': 'Earth Data Globe - Orangopus'
   }
   
   const title = titles[to.name as string] || 'Orangopus - Simplifying Development'

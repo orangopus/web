@@ -1,6 +1,4 @@
-// vue.config.js
+// vue.config.js (create if missing)
 module.exports = {
-  publicPath: '/',
-    outputDir: 'dist',
-      transpileDependencies: true,
-      }
+  configureWebpack: { entry: './src/main.ts' }
+}
